@@ -406,6 +406,55 @@ function render(p, seed) {
     }
   }
 
+  /* 6b. Lente un po' sporca: alone ampio dalle luci, modulato dallo sporco, più un velo che alza i neri */
+  if ((p.bloom || 0) > 0.003 || (p.haze || 0) > 0.003) {
+    const F = 4, sw = Math.max(2, Math.ceil(W / F)), shh = Math.max(2, Math.ceil(H / F)), n = sw * shh;
+    const bR = new Float32Array(n), bG = new Float32Array(n), bB = new Float32Array(n), bL = new Float32Array(n);
+    const thr = 0.45;
+    for (let y = 0; y < H; y++) {
+      const sy = (y / F) | 0;
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, j = sy * sw + ((x / F) | 0);
+        const r = R[i], g = G[i], b = B[i], L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        const wgt = L > thr ? Math.min(4, L - thr) / L : 0;   // l'alone ha il colore della luce che lo genera
+        bR[j] += r * wgt; bG[j] += g * wgt; bB[j] += b * wgt;
+        bL[j] += L;
+      }
+    }
+    const k = 1 / (F * F);
+    for (let j = 0; j < n; j++) { bR[j] *= k; bG[j] *= k; bB[j] *= k; bL[j] *= k; }
+    const oW = W, oH = H; W = sw; H = shh;
+    const s1 = oW * 0.010 / F, s2 = oW * 0.045 / F, s3 = oW * 0.14 / F;
+    const R1 = gauss(bR, s1), G1 = gauss(bG, s1), B1 = gauss(bB, s1);
+    const R2 = gauss(bR, s2), G2 = gauss(bG, s2), B2 = gauss(bB, s2);
+    const L3 = gauss(bL, s3);
+    W = oW; H = oH;
+    if (!self.__dirt || self.__dirt.w !== sw || self.__dirt.h !== shh) {   // sporco fisso: è sempre la stessa lente
+      const dr = mulberry32(90210), D = new Float32Array(n).fill(0.35);
+      for (let b = 0; b < 46; b++) {
+        const cx = dr() * sw, cy = dr() * shh, rad = (0.03 + dr() * 0.16) * sw, a = 0.25 + dr() * 0.9;
+        const x0 = Math.max(0, (cx - rad * 2) | 0), x1 = Math.min(sw, (cx + rad * 2) | 0), y0 = Math.max(0, (cy - rad * 2) | 0), y1 = Math.min(shh, (cy + rad * 2) | 0);
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const d2 = ((x - cx) ** 2 + (y - cy) ** 2) / (rad * rad); D[y * sw + x] += a * Math.exp(-d2); }
+      }
+      for (let i = 0; i < 6; i++) { const cx = dr() * sw, cy = dr() * shh; for (let y = 0; y < shh; y++) for (let x = 0; x < sw; x++) { const t = Math.abs((x - cx) * 0.6 + (y - cy) * 0.8) / (sw * 0.012); if (t < 1) D[y * sw + x] += 0.35 * (1 - t) * (0.5 + 0.5 * Math.sin(x * 0.07 + i)); } }
+      self.__dirt = { w: sw, h: shh, D };
+    }
+    const D = self.__dirt.D, bl = (p.bloom || 0) * 0.85, hz = (p.haze || 0);
+    let mean = 0; for (let j = 0; j < n; j++) mean += bL[j]; mean /= n;
+    for (let y = 0; y < H; y++) {
+      const fy = Math.min(shh - 1.001, y / F), y0 = fy | 0, ay = fy - y0;
+      for (let x = 0; x < W; x++) {
+        const fx = Math.min(sw - 1.001, x / F), x0 = fx | 0, ax = fx - x0, j = y0 * sw + x0;
+        const lerp = (A) => (A[j] * (1 - ax) + A[j + 1] * ax) * (1 - ay) + (A[j + sw] * (1 - ax) + A[j + sw + 1] * ax) * ay;
+        const d = lerp(D), i = y * W + x;
+        const veil = hz * (0.10 * mean + 0.22 * lerp(L3));
+        R[i] += (lerp(R1) * 0.55 + lerp(R2) * 0.9) * bl * d + veil * 1.02;
+        G[i] += (lerp(G1) * 0.55 + lerp(G2) * 0.9) * bl * d + veil;
+        B[i] += (lerp(B1) * 0.55 + lerp(B2) * 0.9) * bl * d * 0.92 + veil * 0.96;
+      }
+    }
+  }
+
   /* 7. Rumore del sensore: fotonico, di lettura, cromatico a macchie, bande orizzontali */
   const ns = p.noise, cs = p.chroma;
   if (ns > 0.002 || cs > 0.002) {
@@ -439,6 +488,11 @@ function render(p, seed) {
   const hl = 1 + p.hl * 1.6;
   const wr = 1 + 0.22 * p.temp - 0.04 * p.tint, wg = 1 + 0.08 * p.tint, wb = 1 - 0.22 * p.temp - 0.04 * p.tint;
   const ct = p.ct, bk = p.sh * 0.13, bki = 1 / (1 - bk), sat = p.sat;
+  /* Color grading: tinta, forza e valore per ombre, medi e luci */
+  const gv = (h, s) => { const t = (h || 0) * Math.PI / 180, k = (s || 0) * 0.22; return [Math.cos(t) * k, Math.cos(t - 2.0944) * k, Math.cos(t - 4.1888) * k]; };
+  const GS = gv(p.gsh, p.gss), GM = gv(p.gmh, p.gms), GH = gv(p.ghh, p.ghs);
+  const VS = (p.gsv || 0) * 0.25, VM = (p.gmv || 0) * 0.25, VH = (p.ghv || 0) * 0.25;
+  const grading = GS[0] || GS[1] || GM[0] || GM[1] || GH[0] || GH[1] || VS || VM || VH;
   const Y = new Float32Array(N); let Cb = new Float32Array(N), Cr = new Float32Array(N);
   for (let i = 0; i < N; i++) {
     let r = R[i], g = G[i], b = B[i];
@@ -453,6 +507,13 @@ function render(p, seed) {
     /* 10. Colore CCD: saturazione, rossi un po' spinti */
     const yy = 0.299 * r + 0.587 * g + 0.114 * b;
     r = yy + (r - yy) * sat * 1.06; g = yy + (g - yy) * sat * 0.97; b = yy + (b - yy) * sat * 1.03;
+    if (grading) {
+      const l = Math.max(0, Math.min(1, 0.299 * r + 0.587 * g + 0.114 * b)), ws = (1 - l) * (1 - l), wh = l * l, wm = 2 * l * (1 - l);
+      const off = ws * VS + wm * VM + wh * VH;
+      r += ws * GS[0] + wm * GM[0] + wh * GH[0] + off;
+      g += ws * GS[1] + wm * GM[1] + wh * GH[1] + off;
+      b += ws * GS[2] + wm * GM[2] + wh * GH[2] + off;
+    }
     const y2 = 0.299 * r + 0.587 * g + 0.114 * b;
     Y[i] = y2; Cb[i] = b - y2; Cr[i] = r - y2;
   }
@@ -534,6 +595,8 @@ void main() {
 uniform vec2 uRes;
 uniform sampler2D uSm;
 uniform float uEv, uFlash, uSoft, uFocus, uVig, uDist, uCa, uNoise, uChroma, uHl, uSh, uCt, uSat, uTemp, uTint, uT, uScale;
+uniform float uHz;
+uniform vec3 uGS, uGM, uGH, uGV;
 out vec4 o;
 const vec2 D[8] = vec2[8](vec2(1.0, 0.0), vec2(0.7071, 0.7071), vec2(0.0, 1.0), vec2(-0.7071, 0.7071), vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071));
 float vnoise(vec2 p, float seed) {
@@ -579,6 +642,7 @@ void main() {
   float c1 = vnoise(cp, mod(t * 13.0, 500.0)), c2 = vnoise(cp, mod(t * 29.0, 500.0) + 600.0);
   float ca = uChroma * (0.006 + 0.032 * sq);
   c.r += c1 * ca; c.b += c2 * ca; c.g -= (c1 + c2) * 0.45 * ca;
+  c += uHz * 0.058;
   float hl = 1.0 + uHl * 1.6;
   c = mix(c, 0.5 + (c - 0.5) * hl, step(0.5, c));
   c = clamp(c, 0.0, 1.0);
@@ -589,6 +653,8 @@ void main() {
   float bk = uSh * 0.13; c = max((c - bk) / (1.0 - bk), 0.0);
   float yy = dot(c, vec3(0.299, 0.587, 0.114));
   c = yy + (c - yy) * uSat * vec3(1.06, 0.97, 1.03);
+  float gl = clamp(dot(c, vec3(0.299, 0.587, 0.114)), 0.0, 1.0), ws = (1.0 - gl) * (1.0 - gl), wh = gl * gl, wm = 2.0 * gl * (1.0 - gl);
+  c += ws * uGS + wm * uGM + wh * uGH + (ws * uGV.x + wm * uGV.y + wh * uGV.z);
   o = vec4(clamp(c, 0.0, 1.0), 1.0);
 }
 </script>
@@ -670,14 +736,32 @@ const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ==
 document.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
 document.addEventListener("dblclick", (e) => e.preventDefault());
 
-/* --- Orientamento: il corpo macchina è orizzontale e resta solidale al telefono --- */
+/* --- Stato di base dell'effetto: viene dal codice di taratura EXM2-B1 --- */
+const BASE = {"ev": -6, "hl": 0, "sh": 75, "ct": 69, "sat": 98, "temp": -49, "tint": -87, "soft": 8, "focus": 0, "vig": 4, "dist": 26, "ca": 98, "bloom": 8, "haze": 32, "smear": 10, "noise": 15, "chroma": 37, "sharp": 84, "jpeg": 27, "mano": 61, "posa": 0, "gsh": 104, "gss": 42, "gsv": -2, "gmh": 19, "gms": 92, "gmv": 44, "ghh": 154, "ghs": 44, "ghv": 21, "dir": -1};
+
+/* --- Impostazioni della fotocamera (non dell'effetto) --- */
+const SET_DEF = { flash: "0", cam: "environment", exif: "0", size: "1600", theme: "dark", evAdj: 0, sound: "1", haptic: "1" };
+let vals = Object.assign({}, SET_DEF);
+try { const s = JSON.parse(store.get("exm2-set", "{}")); for (const k in SET_DEF) if (k in s) vals[k] = s[k]; } catch (e) {}
+const save = () => store.set("exm2-set", JSON.stringify(vals));
+const MENU = [
+  { k: "flash", l: "FLASH", opts: [["0", "OFF"], ["1", "ON"]] },
+  { k: "cam", l: "CAMERA", opts: [["environment", "POST"], ["user", "ANT"]] },
+  { k: "exif", l: "EXIF", opts: [["0", "OFF"], ["1", "ON"]] },
+  { k: "size", l: "FORMATO", opts: [["1600", "1600"], ["1280", "1280"], ["640", "640"]] },
+  { k: "sound", l: "SUONI", opts: [["1", "ON"], ["0", "OFF"]] },
+  { k: "haptic", l: "VIBRAZIONE", opts: [["1", "ON"], ["0", "OFF"]] },
+];
+const optLabel = (d) => (d.opts.find((o) => o[0] === vals[d.k]) || d.opts[0])[1];
+
+/* --- Orientamento: corpo macchina orizzontale, solidale al telefono --- */
 const bodyEl = $("body");
-let rotK = 0; // rotazione del corpo, in quarti di giro orari
+let rotK = 0;
 function angle() { let a = typeof window.orientation === "number" ? window.orientation : (screen.orientation ? screen.orientation.angle : 0); if (a === 270) a = -90; return a; }
 function layout() {
   const touch = navigator.maxTouchPoints > 0, a = angle();
   let W = window.innerWidth, H = window.innerHeight;
-  if (navigator.standalone && screen.width && screen.height) { // a schermo intero innerHeight è più corto dello schermo vero
+  if (navigator.standalone && screen.width && screen.height) {
     const s1 = Math.min(screen.width, screen.height), s2 = Math.max(screen.width, screen.height);
     if (W > H) { W = s2; H = s1; } else { W = s1; H = s2; }
   }
@@ -700,192 +784,184 @@ function fitLcd() {
 }
 window.addEventListener("resize", () => setTimeout(layout, 60));
 window.addEventListener("orientationchange", () => setTimeout(layout, 250));
-
-/* --- Tema --- */
 function applyTheme(n) { document.documentElement.dataset.theme = n; bodyEl.classList.toggle("has-strip", rotK === 1 && n === "light"); }
-
-/* --- Scene e regolazioni --- */
-const POSA = [1, 2, 3, 4, 6, 8, 10];
-const DEFS = [
-  { k: "ev", l: "Esposizione", min: -20, max: 20, f: (v) => (v > 0 ? "+" : v < 0 ? "-" : "±") + Math.abs(v / 10).toFixed(1) + " EV" },
-  { k: "posa", l: "Posa", min: 0, max: POSA.length - 1, f: (v) => "1/" + Math.round(30 / POSA[v]) + " s" },
-  { k: "hl", l: "Alte luci" }, { k: "sh", l: "Ombre" }, { k: "ct", l: "Contrasto" }, { k: "sat", l: "Saturazione", max: 200 },
-  { k: "temp", l: "Temperatura", min: -100, max: 100 }, { k: "tint", l: "Tinta", min: -100, max: 100 },
-  { k: "flash", l: "Flash", f: (v) => v ? String(v) : "Off" },
-  { k: "soft", l: "Morbidezza" }, { k: "focus", l: "Fuori fuoco" }, { k: "vig", l: "Vignettatura" }, { k: "dist", l: "Distorsione" },
-  { k: "ca", l: "Aberrazione" }, { k: "smear", l: "Smear CCD" }, { k: "noise", l: "Rumore" }, { k: "chroma", l: "Rumore crom." }, { k: "sharp", l: "Nitidezza" },
-];
-const CHOICES = [
-  { k: "size", l: "Dimensione", opts: [["1600", "1600×1200"], ["1280", "1280×960"], ["640", "640×480"]] },
-  { k: "quality", l: "Qualità", opts: [["0.84", "Fine"], ["0.68", "Normale"], ["0.5", "Economia"]] },
-  { k: "exif", l: "EXIF EX-M2", opts: [["0", "Off"], ["1", "On"]] },
-  { k: "cam", l: "Fotocamera", opts: [["environment", "Posteriore"], ["user", "Anteriore"]] },
-  { k: "theme", l: "Tema", opts: [["light", "Chiaro"], ["dark", "Scuro"]] },
-];
-const MODES = [["giorno", "AUTO"], ["interno", "INTERNO"], ["controluce", "CONTROLUCE"], ["flash", "FLASH"], ["notte", "NOTTE"], ["mosso", "POSA LUNGA"], ["pulito", "NEUTRA"]];
-const PRESETS = {
-  giorno:     { ev: 0,   posa: 0, hl: 55, sh: 22, ct: 45, sat: 125, temp: -14, tint: 6,  flash: 0,  soft: 40, focus: 0,  vig: 32, dist: 25, ca: 35, smear: 45, noise: 18, chroma: 28, sharp: 55 },
-  interno:    { ev: -3,  posa: 3, hl: 50, sh: 28, ct: 38, sat: 112, temp: 48,  tint: -4, flash: 0,  soft: 45, focus: 4,  vig: 38, dist: 25, ca: 30, smear: 45, noise: 55, chroma: 62, sharp: 50 },
-  controluce: { ev: 7,   posa: 0, hl: 90, sh: 35, ct: 50, sat: 118, temp: -20, tint: 4,  flash: 0,  soft: 42, focus: 0,  vig: 34, dist: 25, ca: 60, smear: 75, noise: 22, chroma: 30, sharp: 55 },
-  flash:      { ev: -4,  posa: 0, hl: 72, sh: 38, ct: 50, sat: 115, temp: -26, tint: 8,  flash: 70, soft: 40, focus: 0,  vig: 30, dist: 25, ca: 35, smear: 40, noise: 32, chroma: 40, sharp: 58 },
-  notte:      { ev: -12, posa: 5, hl: 70, sh: 42, ct: 55, sat: 105, temp: 32,  tint: -2, flash: 0,  soft: 48, focus: 10, vig: 40, dist: 25, ca: 40, smear: 85, noise: 85, chroma: 88, sharp: 45 },
-  mosso:      { ev: 0,   posa: 6, hl: 55, sh: 24, ct: 45, sat: 120, temp: -10, tint: 5,  flash: 0,  soft: 42, focus: 6,  vig: 32, dist: 25, ca: 35, smear: 45, noise: 25, chroma: 34, sharp: 52 },
-  pulito:     { ev: 0,   posa: 0, hl: 0,  sh: 0,  ct: 0,  sat: 100, temp: 0,   tint: 0,  flash: 0,  soft: 0,  focus: 0,  vig: 0,  dist: 0,  ca: 0,  smear: 0,  noise: 0,  chroma: 0,  sharp: 0  },
-};
-let vals = {};
-try { vals = JSON.parse(store.get("exm2-vals", "{}")) || {}; } catch (e) { vals = {}; }
-let modeIdx = Math.max(0, MODES.findIndex((m) => m[0] === store.get("exm2-mode", "giorno")));
-if (!("ev" in vals)) Object.assign(vals, PRESETS[MODES[modeIdx][0]]);
-const DEF_CHOICE = { size: "1600", quality: "0.68", exif: "0", cam: "environment", theme: "dark" };
-for (const c of CHOICES) if (!(c.k in vals)) vals[c.k] = DEF_CHOICE[c.k];
 applyTheme(vals.theme);
-const save = () => store.set("exm2-vals", JSON.stringify(vals));
-const MENU = [...DEFS.map((d) => ({ t: "f", ...d })), ...CHOICES.map((c) => ({ t: "c", ...c }))];
-const fmt = (d, v) => d.t === "c" ? (d.opts.find((o) => o[0] === v) || d.opts[0])[1] : d.f ? d.f(v) : String(v);
 
-/* --- Stato della fotocamera --- */
-const S = { on: false, mode: "rec", menu: false, menuIdx: +store.get("exm2-menu", 0) % MENU.length, disp: +store.get("exm2-disp", 0), review: null, confirm: false, playIdx: 0, playMenuIdx: 0, msg: "", msgT: 0, busy: false };
-const PLAY_MENU = ["Salva", "Salva tutti", "Elimina"];
+/* --- Stato --- */
+const S = { on: false, mode: "rec", menu: false, menuIdx: 0, disp: +store.get("exm2-disp", 0), review: null, confirm: false, confirmSel: 0, playIdx: 0, playMenuIdx: 0, msg: "", msgT: 0, busy: false };
+const PLAY_MENU = ["SALVA", "SALVA TUTTE", "ELIMINA"];
 function flashMsg(t, ms) { S.msg = t; clearTimeout(S.msgT); S.msgT = setTimeout(() => { S.msg = ""; drawOsd(); }, ms || 1400); drawOsd(); }
 
-/* --- Display: testo e icone disegnati alla risoluzione del pannello --- */
-const osd = document.createElement("canvas"); osd.width = 236; osd.height = 240; // 354/1,5 triadi × 240 righe
+/* --- Display: carattere bitmap 5×7, ogni pixel è un gruppo di punti del pannello --- */
+const OW = 177, OH = 120; // 354 punti / 2 × 240 righe / 2: un pixel del carattere = 2×2 punti
+const osd = document.createElement("canvas"); osd.width = OW; osd.height = OH;
 const ox = osd.getContext("2d");
 let osdDirty = true;
-function txt(s, x, y, align, size) {
-  ox.font = Math.round((size || 11) * 1.2) + "px Helvetica, Arial, sans-serif"; ox.textAlign = align || "left"; ox.textBaseline = "top";
-  ox.lineWidth = 2.5; ox.strokeStyle = "rgba(0,0,0,.85)"; ox.lineJoin = "round"; ox.strokeText(s, x, y);
-  ox.fillStyle = "#fff"; ox.fillText(s, x, y);
+const G = {
+  "0": "01110100011001110101110011000101110", "1": "00100011000010000100001000010001110", "2": "01110100010000100010001000100011111",
+  "3": "11111000100010000010000011000101110", "4": "00010001100101010010111110001000010", "5": "11111100001111000001000011000101110",
+  "6": "00110010001000011110100011000101110", "7": "11111000010001000100010000100001000", "8": "01110100011000101110100011000101110",
+  "9": "01110100011000101111000010001001100", "A": "01110100011000111111100011000110001", "B": "11110100011000111110100011000111110",
+  "C": "01110100011000010000100001000101110", "D": "11100100101000110001100011001011100", "E": "11111100001000011110100001000011111",
+  "F": "11111100001000011110100001000010000", "G": "01110100011000010111100011000101111", "H": "10001100011000111111100011000110001",
+  "I": "01110001000010000100001000010001110", "J": "00111000100001000010000101001001100", "K": "10001100101010011000101001001010001",
+  "L": "10000100001000010000100001000011111", "M": "10001110111010110101100011000110001", "N": "10001100011100110101100111000110001",
+  "O": "01110100011000110001100011000101110", "P": "11110100011000111110100001000010000", "Q": "01110100011000110001101011001001101",
+  "R": "11110100011000111110101001001010001", "S": "01111100001000001110000010000111110", "T": "11111001000010000100001000010000100",
+  "U": "10001100011000110001100011000101110", "V": "10001100011000110001100010101000100", "W": "10001100011000110101101011010101010",
+  "X": "10001100010101000100010101000110001", "Y": "10001100011000101010001000010000100", "Z": "11111000010001000100010001000011111",
+  " ": "00000000000000000000000000000000000", ":": "00000011000110000000011000110000000", ".": "00000000000000000000000000110001100",
+  "/": "00000000010001000100010001000000000", "-": "00000000000000011111000000000000000", "+": "00000001000010011111001000010000000",
+  "[": "01110010000100001000010000100001110", "]": "01110000100001000010000100001001110", "?": "01110100010000100010001000000000100",
+  "<": "00010001000100010000010000010000010", ">": "01000001000001000001000100010001000", "x": "00000100010101000100010101000100000",
+  "!": "00100001000010000100001000000000100", "*": "00010001000100011111000100010001000",
+};
+function glyphPx(ch, x, y, fn) { const g = G[ch] || G["?"]; for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r * 5 + c] === "1") fn(x + c, y + r); }
+const textW = (s) => s.length * 6 - 1;
+function text(s, x, y, o) {
+  o = o || {}; s = String(s).toUpperCase();
+  let x0 = o.align === "right" ? x - textW(s) : o.align === "center" ? Math.round(x - textW(s) / 2) : x;
+  if (!o.inv) { // contorno nero di un pixel: si legge su qualsiasi immagine
+    ox.fillStyle = "#000";
+    for (let i = 0; i < s.length; i++) glyphPx(s[i], x0 + i * 6, y, (px, py) => ox.fillRect(px - 1, py - 1, 3, 3));
+  }
+  ox.fillStyle = o.inv ? "#000" : "#fff";
+  for (let i = 0; i < s.length; i++) glyphPx(s[i], x0 + i * 6, y, (px, py) => ox.fillRect(px, py, 1, 1));
 }
-function bolt(x, y, on) {
-  ox.beginPath(); ox.moveTo(x + 5, y); ox.lineTo(x, y + 7); ox.lineTo(x + 4, y + 7); ox.lineTo(x + 2, y + 12); ox.lineTo(x + 8, y + 4); ox.lineTo(x + 4, y + 4); ox.lineTo(x + 6, y); ox.closePath();
-  ox.lineWidth = 2.5; ox.strokeStyle = "rgba(0,0,0,.85)"; ox.stroke(); ox.fillStyle = "#fff"; ox.fill();
-  if (!on) { ox.beginPath(); ox.moveTo(x - 2, y + 12); ox.lineTo(x + 10, y); ox.lineWidth = 3; ox.strokeStyle = "#000"; ox.stroke(); ox.lineWidth = 1.2; ox.strokeStyle = "#fff"; ox.stroke(); }
-}
-function battery(x, y) {
-  ox.fillStyle = "rgba(0,0,0,.85)"; ox.fillRect(x - 1, y - 1, 20, 10);
-  ox.strokeStyle = "#fff"; ox.lineWidth = 1; ox.strokeRect(x + 0.5, y + 0.5, 16, 7); ox.fillStyle = "#fff"; ox.fillRect(x + 17, y + 2.5, 1.5, 3); ox.fillRect(x + 2, y + 2, 13, 4);
-}
-function panel(x, y, w, h, a) { ox.fillStyle = "rgba(0,0,0," + (a || 0.7) + ")"; ox.fillRect(x, y, w, h); }
+function box(x, y, w, h, c) { ox.fillStyle = c || "rgba(0,0,0,.85)"; ox.fillRect(x, y, w, h); }
+function rule(x, y, w) { ox.fillStyle = "#000"; ox.fillRect(x - 1, y - 1, w + 2, 3); ox.fillStyle = "#fff"; ox.fillRect(x, y, w, 1); }   // divisore con contorno nero
+function selBox(x, y, w, h) { ox.fillStyle = "#000"; ox.fillRect(x - 1, y - 1, w + 2, h + 2); ox.fillStyle = "#fff"; ox.fillRect(x, y, w, h); }
+function battery(x, y) { box(x - 1, y - 1, 12, 9, "#000"); ox.fillStyle = "#fff"; ox.fillRect(x, y, 9, 1); ox.fillRect(x, y + 6, 9, 1); ox.fillRect(x, y, 1, 7); ox.fillRect(x + 8, y, 1, 7); ox.fillRect(x + 9, y + 2, 1, 3); ox.fillRect(x + 2, y + 2, 5, 3); }
 let remaining = "----";
 function updateRemaining() {
   if (!navigator.storage || !navigator.storage.estimate) return;
   navigator.storage.estimate().then((e) => {
-    const kb = { "1600": { "0.84": 520, "0.68": 330, "0.5": 200 }, "1280": { "0.84": 340, "0.68": 215, "0.5": 130 }, "640": { "0.84": 95, "0.68": 60, "0.5": 38 } }[vals.size][vals.quality];
+    const sz = +vals.size, kb = (60 + 4.5 * BASE.jpeg) * (sz * sz) / (1600 * 1600) + 8;
     const n = Math.floor(((e.quota || 0) - (e.usage || 0)) / 1024 / kb);
-    remaining = String(Math.max(0, Math.min(9999, n))).padStart(4, "0"); osdDirty = true;
+    remaining = String(Math.max(0, Math.min(9999, n))).padStart(4, "0"); drawOsd();
   }).catch(() => {});
 }
+const evText = (v) => (v > 0 ? "+" : "-") + Math.abs(v / 10).toFixed(1);
 function drawOsd() {
   osdDirty = true;
-  ox.setTransform(1, 0, 0, 1, 0, 0); ox.clearRect(0, 0, 236, 240);
-  ox.setTransform(236 / 320, 0, 0, 1, 0, 0); // si disegna in 320×240 a pixel quadrati
-  if (!S.on) { txt("Tocca per accendere", 160, 112, "center", 12); return; }
-  const q = { "0.84": "F", "0.68": "N", "0.5": "E" }[vals.quality];
-  if (S.mode === "rec" && !S.review) {
-    if (S.disp === 0 && !S.menu) {
-      txt(MODES[modeIdx][1], 8, 7);
-      if (vals.flash > 0) bolt(10, 24, true);
-      txt(vals.size + " " + q, 312, 7, "right");
-      txt("[" + remaining + "]", 312, 21, "right", 10);
-      if (+vals.ev) txt(fmt(DEFS[0], vals.ev), 8, 222, "left", 10);
-      if (+vals.posa) txt(fmt(DEFS[1], vals.posa), 8 + (+vals.ev ? 54 : 0), 222, "left", 10);
-      const d = new Date(); txt(String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"), 160, 222, "center", 10);
-      battery(290, 225);
-      if (vals.cam === "user") txt("ANT", 312, 36, "right", 10);
-    }
-    if (S.menu) drawMenu();
+  ox.clearRect(0, 0, OW, OH);
+  if (!S.on) { text("TOCCA PER", OW / 2, 50, { align: "center" }); text("ACCENDERE", OW / 2, 60, { align: "center" }); return; }
+  const rec = S.mode === "rec" && !S.review;
+  if (rec && S.disp === 0 && !S.menu) {
+    let x = 4;
+    if (vals.flash === "1") { text("*", x, 4); x += 9; }
+    if (vals.cam === "user") text("ANT", x, 4);
+    text(vals.size, OW - 4, 4, { align: "right" });
+    text("[" + remaining + "]", OW - 4, 14, { align: "right" });
+    if (vals.evAdj) text(evText(vals.evAdj), 4, OH - 11);
+    const d = new Date(); text(String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"), OW / 2, OH - 11, { align: "center" });
+    battery(OW - 15, OH - 11);
   }
+  if (rec && S.menu) drawMenu();
   if (S.mode === "play" || S.review) {
     const s = S.review || shots[S.playIdx];
-    if (!s) { txt("Nessuna immagine", 160, 112, "center", 12); }
-    else if (S.disp === 0 && !S.review) {
-      txt("PLAY", 8, 7); txt(s.name, 312, 7, "right", 10);
-      txt((S.playIdx + 1) + "/" + shots.length, 8, 222, "left", 10);
-      txt(s.w + "×" + s.h + " " + q, 312, 222, "right", 10);
+    if (!s) text("NESSUNA FOTO", OW / 2, 56, { align: "center" });
+    else if (S.disp === 0 && !S.review && !S.menu) {
+      text("PLAY", 4, 4); text(s.name.slice(4, 8), OW - 4, 4, { align: "right" });
+      text((S.playIdx + 1) + "/" + shots.length, 4, OH - 11); text(s.w + "x" + s.h, OW - 4, OH - 11, { align: "right" });
     }
-    if (S.review) txt(S.review.name, 312, 7, "right", 10);
     if (S.mode === "play" && S.menu) drawPlayMenu();
   }
-  if (S.busy) { panel(96, 104, 128, 30); txt("Registrazione…", 160, 113, "center", 11); }
-  if (S.msg) { panel(40, 104, 240, 30); txt(S.msg, 160, 113, "center", 11); }
+  if (S.busy) { const w = textW("REGISTRAZIONE") + 12; box(Math.round((OW - w) / 2), 52, w, 15); text("REGISTRAZIONE", OW / 2, 56, { align: "center" }); }
+  if (S.msg) { const w = textW(S.msg) + 12; box(Math.round((OW - w) / 2), 52, w, 15); text(S.msg, OW / 2, 56, { align: "center" }); }
 }
 function drawMenu() {
-  panel(0, 0, 320, 240, 0.86);
-  txt("MENU REC", 10, 8, "left", 11); txt((S.menuIdx + 1) + "/" + MENU.length, 310, 8, "right", 10);
-  ox.fillStyle = "#fff"; ox.fillRect(10, 25, 300, 1);
-  const rows = 8, top = Math.max(0, Math.min(MENU.length - rows, S.menuIdx - 3));
-  for (let i = 0; i < rows; i++) {
-    const idx = top + i, d = MENU[idx]; if (!d) break;
-    const y = 32 + i * 24, sel = idx === S.menuIdx;
-    if (sel) { ox.fillStyle = "#fff"; ox.fillRect(8, y - 3, 304, 21); }
-    ox.font = "14px Helvetica, Arial, sans-serif"; ox.textBaseline = "top";
-    ox.fillStyle = sel ? "#000" : "#fff";
-    ox.textAlign = "left"; ox.fillText(d.l, 16, y);
-    ox.textAlign = "right"; ox.fillText((sel ? "‹ " : "") + fmt(d, vals[d.k]) + (sel ? " ›" : ""), 304, y);
-    if (d.t === "f" && sel) {
-      const min = d.min ?? 0, max = d.max ?? 100, t = (vals[d.k] - min) / (max - min);
-      ox.fillStyle = "#000"; ox.fillRect(120, y + 6, 90, 1); ox.fillRect(120 + t * 88, y + 1, 3, 11);
-    }
-  }
-}
-function drawPlayMenu() {
-  panel(0, 0, 320, 240, 0.86);
-  if (S.confirm) {
-    const s = shots[S.playIdx];
-    txt("Eliminare " + (s ? s.name : "") + "?", 160, 80, "center", 12);
-    ["No", "Sì"].forEach((t, i) => { const x = 110 + i * 100, sel = (S.confirmSel || 0) === i; if (sel) { ox.fillStyle = "#fff"; ox.fillRect(x - 36, 117, 72, 22); } ox.font = "14px Helvetica, Arial, sans-serif"; ox.textAlign = "center"; ox.textBaseline = "top"; ox.fillStyle = sel ? "#000" : "#fff"; ox.fillText(t, x, 121); });
-    return;
-  }
-  txt("MENU PLAY", 10, 8, "left", 11); ox.fillStyle = "#fff"; ox.fillRect(10, 25, 300, 1);
-  PLAY_MENU.forEach((t, i) => {
-    const y = 40 + i * 28, sel = i === S.playMenuIdx;
-    if (sel) { ox.fillStyle = "#fff"; ox.fillRect(8, y - 4, 304, 23); }
-    ox.font = "14px Helvetica, Arial, sans-serif"; ox.textAlign = "left"; ox.textBaseline = "top"; ox.fillStyle = sel ? "#000" : "#fff"; ox.fillText(t, 16, y);
+  box(0, 0, OW, OH, "rgba(0,0,0,.88)");
+  text("MENU", 6, 6); rule(5, 16, OW - 10);
+  MENU.forEach((d, i) => {
+    const y = 23 + i * 13, sel = i === S.menuIdx;
+    if (sel) selBox(4, y - 2, OW - 8, 11);
+    text(d.l, 7, y, { inv: sel }); text((sel ? "<" : "") + optLabel(d) + (sel ? ">" : ""), OW - 7, y, { align: "right", inv: sel });
   });
 }
+function drawPlayMenu() {
+  box(0, 0, OW, OH, "rgba(0,0,0,.88)");
+  if (S.confirm) {
+    text("ELIMINARE?", OW / 2, 42, { align: "center" });
+    ["NO", "SI"].forEach((t, i) => { const x = OW / 2 + (i ? 22 : -22), sel = S.confirmSel === i; if (sel) selBox(x - 12, 60, 24, 11); text(t, x, 62, { align: "center", inv: sel }); });
+    return;
+  }
+  text("MENU PLAY", 6, 6); rule(5, 16, OW - 10);
+  PLAY_MENU.forEach((t, i) => { const y = 23 + i * 13, sel = i === S.playMenuIdx; if (sel) selBox(4, y - 2, OW - 8, 11); text(t, 7, y, { inv: sel }); });
+}
+
+/* --- Suono dei tasti e vibrazione --- */
+let actx = null, noiseBuf = null;
+try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch (e) {} // rispetta l'interruttore silenzioso
+function audio() {
+  if (actx) { if (actx.state === "suspended") actx.resume(); return actx; }
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    noiseBuf = actx.createBuffer(1, Math.round(actx.sampleRate * 0.08), actx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { actx = null; }
+  return actx;
+}
+function tick(t0, freq, dur, gain, hp) { // un clic: rumore filtrato con un piccolo tono, decadimento rapido
+  const a = actx, src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = noiseBuf; f.type = "bandpass"; f.frequency.value = hp; f.Q.value = 1.2;
+  g.gain.setValueAtTime(gain, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(f).connect(g).connect(a.destination); src.start(t0, Math.random() * 0.03, dur + 0.01);
+  const o = a.createOscillator(), og = a.createGain(); o.frequency.value = freq; o.type = "square";
+  og.gain.setValueAtTime(gain * 0.25, t0); og.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * 0.6);
+  o.connect(og).connect(a.destination); o.start(t0); o.stop(t0 + dur);
+}
+function clickSound(kind) {
+  if (vals.sound !== "1" || !audio()) return;
+  const t0 = actx.currentTime + 0.002;
+  if (kind === "shutter") { tick(t0, 900, 0.035, 0.5, 2600); tick(t0 + 0.075, 700, 0.05, 0.4, 1800); }
+  else if (kind === "soft") tick(t0, 2400, 0.012, 0.18, 4200);
+  else tick(t0, 1800, 0.018, 0.28, 3200);
+}
+const hapticLabel = (() => { // iPhone: l'interruttore nativo vibra quando lo si attiva da un tocco
+  const i = document.createElement("input"); i.type = "checkbox"; i.setAttribute("switch", ""); i.id = "haptic-sw";
+  const l = document.createElement("label"); l.htmlFor = "haptic-sw";
+  const w = document.createElement("div"); w.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"; w.append(i, l); document.body.appendChild(w);
+  return l;
+})();
+function haptic() {
+  if (vals.haptic !== "1") return;
+  if (navigator.vibrate) { try { navigator.vibrate(12); return; } catch (e) {} }
+  try { hapticLabel.click(); } catch (e) {}
+}
+document.addEventListener("click", (e) => { if (e.target.closest(".keys button, .keys .dpad, #lcd")) { if (vals.sound === "1") audio(); haptic(); } }, true);
 
 /* --- Tasti --- */
-function stepVal(d, dir) {
-  if (d.t === "c") { const i = d.opts.findIndex((o) => o[0] === vals[d.k]); vals[d.k] = d.opts[(i + dir + d.opts.length) % d.opts.length][0]; onChoice(d.k); }
-  else { const min = d.min ?? 0, max = d.max ?? 100, st = max - min >= 100 ? 5 : 1; vals[d.k] = Math.max(min, Math.min(max, +vals[d.k] + dir * st)); }
-  save(); syncKeys();
-}
-function onChoice(k) {
-  if (k === "theme") applyTheme(vals.theme);
-  if (k === "cam" && S.on) startCamera();
-  if (k === "size" || k === "quality") updateRemaining();
-}
-function setMode(i) { modeIdx = (i + MODES.length) % MODES.length; Object.assign(vals, PRESETS[MODES[modeIdx][0]]); store.set("exm2-mode", MODES[modeIdx][0]); save(); syncKeys(); }
 function syncKeys() {
   $("k-rec").className = "gz-btn " + (S.mode === "rec" ? "" : "gz-btn--secondary"); $("k-rec").setAttribute("aria-pressed", S.mode === "rec");
   $("k-play").className = "gz-btn " + (S.mode === "play" ? "" : "gz-btn--secondary"); $("k-play").setAttribute("aria-pressed", S.mode === "play");
   drawOsd();
 }
-let lastFlash = 70;
+function stepMenu(dir) {
+  const d = MENU[S.menuIdx], i = d.opts.findIndex((o) => o[0] === vals[d.k]);
+  vals[d.k] = d.opts[(i + dir + d.opts.length) % d.opts.length][0]; save();
+  if (d.k === "cam" && S.on) startCamera();
+  if (d.k === "size") updateRemaining();
+}
 function key(k) {
   if (!S.on) { powerOn(); return; }
-  if (S.review && k !== "shutter") { endReview(); }
-  if (k === "rec" || k === "play") { S.mode = k; S.menu = false; S.confirm = false; if (k === "play") showPlay(0); syncKeys(); return; }
-  if (k === "disp" || (k === "set" && !S.menu)) { S.disp = S.disp ? 0 : 1; store.set("exm2-disp", S.disp); drawOsd(); return; }
-  if (k === "flash") { if (vals.flash > 0) { lastFlash = vals.flash; vals.flash = 0; } else vals.flash = lastFlash || 70; save(); syncKeys(); flashMsg(vals.flash > 0 ? "Flash On" : "Flash Off", 900); return; }
-  if (k === "shutter") { if (S.mode === "play") { S.mode = "rec"; S.menu = false; syncKeys(); return; } if (S.menu) { S.menu = false; drawOsd(); } shoot(); return; }
+  if (S.review && k !== "shutter") endReview();
+  if (k === "rec" || k === "play") { S.mode = k; S.menu = false; S.confirm = false; if (k === "play") { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } showPlay(0); } else startCamera(); syncKeys(); return; }
+  if (k === "shutter") { if (S.mode === "play") { key("rec"); return; } if (S.menu) { S.menu = false; drawOsd(); } shoot(); return; }
   if (S.mode === "rec") {
     if (k === "menu") { S.menu = !S.menu; drawOsd(); return; }
     if (S.menu) {
-      if (k === "up") S.menuIdx = (S.menuIdx - 1 + MENU.length) % MENU.length;
+      if (k === "up") S.menuIdx = (S.menuIdx + MENU.length - 1) % MENU.length;
       if (k === "down") S.menuIdx = (S.menuIdx + 1) % MENU.length;
-      if (k === "left") stepVal(MENU[S.menuIdx], -1);
-      if (k === "right") stepVal(MENU[S.menuIdx], 1);
+      if (k === "left") stepMenu(-1);
+      if (k === "right") stepMenu(1);
       if (k === "set") S.menu = false;
-      store.set("exm2-menu", S.menuIdx); drawOsd(); return;
+      drawOsd(); return;
     }
-    if (k === "left") { setMode(modeIdx - 1); return; }
-    if (k === "right") { setMode(modeIdx + 1); return; }
-    if (k === "up" || k === "down") { vals.ev = Math.max(-20, Math.min(20, +vals.ev + (k === "up" ? 3 : -3))); save(); flashMsg("EV " + fmt(DEFS[0], vals.ev), 900); return; }
-    return;
+    if (k === "set") { S.disp = S.disp ? 0 : 1; store.set("exm2-disp", S.disp); drawOsd(); return; }
+    if (k === "up" || k === "down") { vals.evAdj = Math.max(-20, Math.min(20, vals.evAdj + (k === "up" ? 3 : -3))); save(); flashMsg("EV " + (vals.evAdj ? evText(vals.evAdj) : "0.0"), 900); return; }
+    return; // ◀ ▶ riservati alle manopole
   }
-  // PLAY
   if (k === "menu") { if (S.confirm) S.confirm = false; else S.menu = !S.menu; drawOsd(); return; }
   if (S.menu) {
     if (S.confirm) {
@@ -896,20 +972,20 @@ function key(k) {
     if (k === "up") S.playMenuIdx = (S.playMenuIdx + 2) % 3;
     if (k === "down") S.playMenuIdx = (S.playMenuIdx + 1) % 3;
     if (k === "set") {
-      if (!shots.length) { S.menu = false; }
+      if (!shots.length) S.menu = false;
       else if (S.playMenuIdx === 0) { share([shots[S.playIdx]]); S.menu = false; }
       else if (S.playMenuIdx === 1) { share(shots.slice()); S.menu = false; }
       else { S.confirm = true; S.confirmSel = 0; }
     }
     drawOsd(); return;
   }
+  if (k === "set") { S.disp = S.disp ? 0 : 1; store.set("exm2-disp", S.disp); drawOsd(); return; }
   if (k === "left") showPlay(S.playIdx - 1);
   if (k === "right") showPlay(S.playIdx + 1);
 }
-$("theme").addEventListener("click", () => { vals.theme = vals.theme === "dark" ? "light" : "dark"; applyTheme(vals.theme); save(); drawOsd(); });
-/* Scatto rotondo */
-(function () { const b = $("shutter"); b.addEventListener("pointerdown", () => { b.classList.add("is-down"); key("shutter"); }); const up = () => b.classList.remove("is-down"); b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up); })();
-/* Croce: un cerchio, la direzione si legge dall'angolo del tocco, il centro è SET */
+$("theme").addEventListener("pointerdown", () => clickSound("soft"));
+$("theme").addEventListener("click", () => { vals.theme = vals.theme === "dark" ? "light" : "dark"; applyTheme(vals.theme); save(); });
+(function () { const b = $("shutter"); b.addEventListener("pointerdown", () => { b.classList.add("is-down"); clickSound("shutter"); key("shutter"); }); const up = () => b.classList.remove("is-down"); b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up); })();
 (function () {
   const pad = $("dpad"); let rep = 0, repT = 0, cur = null;
   const which = (e) => {
@@ -920,56 +996,63 @@ $("theme").addEventListener("click", () => { vals.theme = vals.theme === "dark" 
     return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
   };
   const mark = (d) => pad.querySelectorAll("[data-d]").forEach((el) => el.classList.toggle("is-down", el.dataset.d === d));
-  pad.addEventListener("pointerdown", (e) => {
-    pad.setPointerCapture(e.pointerId); cur = which(e); mark(cur); key(cur);
-    if (cur !== "set") repT = setTimeout(() => { rep = setInterval(() => key(cur), 90); }, 380);
-  });
+  pad.addEventListener("pointerdown", (e) => { pad.setPointerCapture(e.pointerId); cur = which(e); mark(cur); clickSound(); key(cur); if (cur !== "set") repT = setTimeout(() => { rep = setInterval(() => { clickSound("soft"); key(cur); }, 110); }, 400); });
   const up = () => { clearTimeout(repT); clearInterval(rep); mark(null); cur = null; };
   pad.addEventListener("pointerup", up); pad.addEventListener("pointercancel", up);
 })();
 document.querySelectorAll("[data-k]").forEach((b) => {
-  const k = b.dataset.k; let rep = 0, repT = 0;
-  const repeatable = ["up", "down", "left", "right"].includes(k);
-  b.addEventListener("pointerdown", (e) => {
-    b.classList.add("is-down"); key(k);
-    if (repeatable) { repT = setTimeout(() => { rep = setInterval(() => key(k), 90); }, 380); }
-  });
-  const up = () => { b.classList.remove("is-down"); clearTimeout(repT); clearInterval(rep); };
+  const k = b.dataset.k;
+  b.addEventListener("pointerdown", () => { b.classList.add("is-down"); clickSound(); key(k); });
+  const up = () => b.classList.remove("is-down");
   b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up);
-  b.addEventListener("click", (e) => e.preventDefault());
 });
 document.addEventListener("keydown", (e) => {
-  const m = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Enter: "set", " ": "shutter", m: "menu", d: "disp", f: "flash", p: "play", r: "rec" }[e.key];
+  const m = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", Enter: "set", " ": "shutter", m: "menu", p: "play", r: "rec" }[e.key];
   if (m) { e.preventDefault(); key(m); }
 });
-/* Il display: tocco per scattare, trascinamento laterale per scorrere le foto */
 (function () {
   const el = $("lcd"); let x0 = 0, y0 = 0, down = false;
   el.addEventListener("pointerdown", (e) => { down = true; x0 = e.clientX; y0 = e.clientY; });
   el.addEventListener("pointerup", (e) => {
     if (!down) return; down = false;
-    let dx = e.clientX - x0, dy = e.clientY - y0, ux = dx;
+    const dx = e.clientX - x0, dy = e.clientY - y0; let ux = dx;
     if (rotK === 1) ux = dy; else if (rotK === 2) ux = -dx;
     if (S.mode === "play" && Math.abs(ux) > 40) key(ux < 0 ? "right" : "left");
-    else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) key(S.mode === "rec" ? "shutter" : "disp");
+    else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) key(S.mode === "rec" ? "shutter" : "set");
   });
 })();
 
-/* --- Fotocamera --- */
+/* --- Fotocamera e torcia --- */
 const video = document.createElement("video");
 video.setAttribute("playsinline", ""); video.muted = true; video.autoplay = true;
 let stream = null;
 async function startCamera() {
-  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { flashMsg("Fotocamera non disponibile qui", 3000); return; }
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { flashMsg("CAMERA N/D", 3000); return; }
   try {
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: vals.cam }, width: { ideal: 1920 }, height: { ideal: 1440 }, aspectRatio: { ideal: 4 / 3 } } });
     video.srcObject = stream; await video.play();
-  } catch (e) { flashMsg(e && e.name === "NotAllowedError" ? "Accesso negato alla fotocamera" : "Fotocamera non disponibile", 3000); }
+  } catch (e) { flashMsg(e && e.name === "NotAllowedError" ? "ACCESSO NEGATO" : "CAMERA N/D", 3000); }
+}
+async function torch(on) {
+  const t = stream && stream.getVideoTracks()[0];
+  if (!t) return false;
+  try { await t.applyConstraints({ advanced: [{ torch: on }] }); return true; } catch (e) { return false; }
 }
 function powerOn() { S.on = true; updateRemaining(); syncKeys(); if (S.mode === "rec") startCamera(); else showPlay(S.playIdx); }
-function powerOff() { S.on = false; S.menu = false; if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } syncKeys(); }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.on && stream && stream.getVideoTracks()[0].readyState === "ended") startCamera(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.on && S.mode === "rec" && (!stream || stream.getVideoTracks()[0].readyState === "ended")) startCamera(); });
+
+/* --- Parametri del motore dallo stato di base --- */
+const gv = (h, s) => { const t = h * Math.PI / 180, k = s * 0.22; return [Math.cos(t) * k, Math.cos(t - 2.0944) * k, Math.cos(t - 4.1888) * k]; };
+function engine(seed) {
+  const v = BASE, r = Math.abs(Math.sin(seed * 12.9898) * 43758.5453) % 1;
+  return { ev: (v.ev + vals.evAdj) / 10, hl: v.hl / 100, sh: v.sh / 100, ct: v.ct / 100, sat: v.sat / 100, temp: v.temp / 100, tint: v.tint / 100, flash: 0,
+    soft: v.soft / 100, focus: v.focus / 100, vig: v.vig / 100, dist: v.dist / 100, ca: v.ca / 100, smear: v.smear / 100,
+    shake: Math.min(2.5, (v.mano / 100) * (0.2 + 1.6 * v.posa / 100)), dir: v.dir < 0 ? r * 180 : v.dir,
+    noise: v.noise / 100, chroma: v.chroma / 100, sharp: v.sharp / 100, bloom: v.bloom / 100, haze: v.haze / 100,
+    gsh: v.gsh, gss: v.gss / 100, gsv: v.gsv / 100, gmh: v.gmh, gms: v.gms / 100, gmv: v.gmv / 100, ghh: v.ghh, ghs: v.ghs / 100, ghv: v.ghv / 100 };
+}
+const POSA_FRAMES = Math.max(1, Math.min(10, 1 + Math.round(BASE.posa / 100 * 3)));
 
 /* --- WebGL --- */
 const canvas = $("gl");
@@ -985,15 +1068,16 @@ function program(fsrc) {
   for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name.replace(/\[0\]$/, "")] = gl.getUniformLocation(p, a.name); }
   return { p, u };
 }
-function tex(w, h) {
+function tex(w, h, nearest) {
   const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  const f = nearest ? gl.NEAREST : gl.LINEAR;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   if (w) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   return t;
 }
 function fbo(t) { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return f; }
-const SMW = 256, DW = 480, DH = 360; // lo sviluppo dal vivo gira a 480×360, più del pannello
+const SMW = 256, DW = 480, DH = 360;
 let vTex, smTex, smFbo, aTex, aFbo, bTex, bFbo, osdTex, photoTex, photoFor = null, photoW = 1, photoH = 1;
 if (gl) {
   try {
@@ -1003,7 +1087,7 @@ if (gl) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     vTex = tex(); smTex = tex(SMW, 1); smFbo = fbo(smTex); aTex = tex(DW, DH); aFbo = fbo(aTex); bTex = tex(DW, DH); bFbo = fbo(bTex);
-    osdTex = tex(); photoTex = tex();
+    osdTex = tex(0, 0, true); photoTex = tex();
   } catch (e) { progs = null; console.error(e); }
 }
 function geom() {
@@ -1017,11 +1101,7 @@ function geom() {
   const sx = Math.min(p1[0], p2[0]), sy = Math.min(p1[1], p2[1]), sw = Math.abs(p2[0] - p1[0]), sh = Math.abs(p2[1] - p1[1]);
   return { crop: [cx, cy, cw, ch], src: [sx * vw, sy * vh, sw * vw, sh * vh] };
 }
-function params() {
-  const v = (k) => +vals[k];
-  return { ev: v("ev") / 10, hl: v("hl") / 100, sh: v("sh") / 100, ct: v("ct") / 100, sat: v("sat") / 100, temp: v("temp") / 100, tint: v("tint") / 100, flash: v("flash") / 100,
-    soft: v("soft") / 100, focus: v("focus") / 100, vig: v("vig") / 100, dist: v("dist") / 100, ca: v("ca") / 100, smear: v("smear") / 100, shake: 0, dir: 0, noise: v("noise") / 100, chroma: v("chroma") / 100, sharp: v("sharp") / 100 };
-}
+let liveSeen = false;
 function frame(now) {
   requestAnimationFrame(frame);
   if (!progs) return;
@@ -1031,7 +1111,7 @@ function frame(now) {
   if (osdDirty) { gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, osdTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, osd); osdDirty = false; }
   const live = S.on && S.mode === "rec" && !S.review && video.readyState >= 2 && video.videoWidth;
   if (live) {
-    const g = geom(), P = params(), ev = Math.pow(2, P.ev), scale = Math.max(DW, DH) / +vals.size, mirror = vals.cam === "user" ? 1 : 0;
+    const g = geom(), P = engine(1), ev = Math.pow(2, P.ev), scale = Math.max(DW, DH) / +vals.size, mirror = vals.cam === "user" ? 1 : 0;
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, vTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
     const common = (pr) => { gl.uniform1i(pr.u.uV, 0); gl.uniform4fv(pr.u.uCrop, g.crop); gl.uniform1f(pr.u.uMirror, mirror); gl.uniform1f(pr.u.uRotK, rotK); };
@@ -1041,13 +1121,16 @@ function frame(now) {
     pr = progs.develop; gl.useProgram(pr.p); common(pr);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, smTex); gl.uniform1i(pr.u.uSm, 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, aFbo); gl.viewport(0, 0, DW, DH); gl.uniform2f(pr.u.uRes, DW, DH);
-    const U = { uEv: ev, uFlash: P.flash, uSoft: P.soft, uFocus: P.focus, uVig: P.vig, uDist: P.dist, uCa: P.ca, uNoise: P.noise, uChroma: P.chroma, uHl: P.hl, uSh: P.sh, uCt: P.ct, uSat: P.sat, uTemp: P.temp, uTint: P.tint, uT: now / 1000, uScale: scale };
+    const U = { uEv: ev, uFlash: 0, uSoft: P.soft, uFocus: P.focus, uVig: P.vig, uDist: P.dist, uCa: P.ca, uNoise: P.noise, uChroma: P.chroma, uHl: P.hl, uSh: P.sh, uCt: P.ct, uSat: P.sat, uTemp: P.temp, uTint: P.tint, uT: now / 1000, uScale: scale, uHz: P.haze };
     for (const k in U) if (pr.u[k]) gl.uniform1f(pr.u[k], U[k]);
+    gl.uniform3fv(pr.u.uGS, gv(P.gsh, P.gss)); gl.uniform3fv(pr.u.uGM, gv(P.gmh, P.gms)); gl.uniform3fv(pr.u.uGH, gv(P.ghh, P.ghs));
+    gl.uniform3f(pr.u.uGV, P.gsv * 0.25, P.gmv * 0.25, P.ghv * 0.25);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     pr = progs.finish; gl.useProgram(pr.p);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, aTex); gl.uniform1i(pr.u.uA, 2);
     gl.bindFramebuffer(gl.FRAMEBUFFER, bFbo); gl.viewport(0, 0, DW, DH); gl.uniform2f(pr.u.uRes, DW, DH); gl.uniform1f(pr.u.uSharp, P.sharp); gl.uniform1f(pr.u.uScale, scale);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    liveSeen = true;
   }
   const play = S.on && (S.mode === "play" || S.review);
   const pr = progs.lcd; gl.useProgram(pr.p);
@@ -1056,15 +1139,12 @@ function frame(now) {
   gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, photoTex); gl.uniform1i(pr.u.uPhoto, 4);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, w, h);
   gl.uniform2f(pr.u.uRes, w, h); gl.uniform1f(pr.u.uOn, 1); gl.uniform1f(pr.u.uPlay, play ? 1 : 0); gl.uniform1f(pr.u.uRotK, rotK);
-  gl.uniform1f(pr.u.uHasImg, play ? (photoFor ? 1 : 0) : (live || liveSeen ? 1 : 0));
-  if (live) liveSeen = true;
-  // la foto si adatta al riquadro del display visto nel verso del mondo
+  gl.uniform1f(pr.u.uHasImg, play ? (photoFor ? 1 : 0) : (S.on && S.mode === "rec" && liveSeen ? 1 : 0));
   const boxA = rotK % 2 ? 3 / 4 : 4 / 3, pa = photoW / photoH;
   let fw = 1, fh = 1; if (pa > boxA) fh = boxA / pa; else fw = pa / boxA;
   gl.uniform4f(pr.u.uFit, (1 - fw) / 2, (1 - fh) / 2, fw, fh);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
-let liveSeen = false;
 requestAnimationFrame(frame);
 setInterval(() => { if (S.on && S.mode === "rec" && S.disp === 0 && !S.menu) drawOsd(); }, 15000);
 
@@ -1074,9 +1154,8 @@ async function loadPhoto(s) {
   try {
     const bmp = await createImageBitmap(s.blob);
     gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, photoTex);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bmp);
-    photoW = bmp.width; photoH = bmp.height; photoFor = s.id; bmp.close && bmp.close();
+    photoW = bmp.width; photoH = bmp.height; photoFor = s.id; if (bmp.close) bmp.close();
   } catch (e) { photoFor = null; }
 }
 function showPlay(i) {
@@ -1085,18 +1164,24 @@ function showPlay(i) {
   S.playIdx = (i + n) % n; loadPhoto(shots[S.playIdx]).then(drawOsd);
 }
 
-/* --- Scatto --- */
+/* --- Scatto: torcia se serve, posa sommando fotogrammi, sviluppo completo nel worker --- */
 const worker = new Worker(URL.createObjectURL(new Blob([$("worker-src").textContent], { type: "text/javascript" })));
 const LIN = new Float32Array(256);
 for (let i = 0; i < 256; i++) { const s = i / 255; LIN[i] = s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); }
 const ENC = new Uint8ClampedArray(4097);
 for (let i = 0; i <= 4096; i++) { const l = i / 4096; ENC[i] = 255 * (l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055) + 0.5; }
 const nextFrame = () => new Promise((res) => { if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(() => res()); else setTimeout(res, 33); });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let pending = {}, reviewT = 0;
 async function shoot() {
   if (!S.on || S.busy || !video.videoWidth) return;
-  S.busy = true;
-  const P = params(), n = POSA[vals.posa], g = geom(), L = +vals.size, Sm = L * 3 / 4;
+  S.busy = true; drawOsd();
+  let lit = false;
+  if (vals.flash === "1") {
+    if (vals.cam !== "environment") flashMsg("FLASH SOLO POST", 1200);
+    else { lit = await torch(true); if (lit) await sleep(500); else flashMsg("FLASH N/D", 1200); }
+  }
+  const seed = (Math.random() * 1e9) | 0, P = engine(seed), n = POSA_FRAMES, g = geom(), L = +vals.size, Sm = L * 3 / 4;
   const [sx, sy, sw, sh] = g.src, landscape = sw >= sh, tw = landscape ? L : Sm, th = landscape ? Sm : L;
   const cv = document.createElement("canvas"); cv.width = tw; cv.height = th;
   const cx = cv.getContext("2d", { willReadFrequently: true });
@@ -1109,15 +1194,15 @@ async function shoot() {
     last = cx.getImageData(0, 0, tw, th).data;
     if (acc) for (let i = 0, j = 0; i < last.length; i += 4, j += 3) { acc[j] += LIN[last[i]]; acc[j + 1] += LIN[last[i + 1]]; acc[j + 2] += LIN[last[i + 2]]; }
   }
+  if (lit) torch(false);
   if (acc) { const k = 4096 / n; for (let i = 0, j = 0; i < last.length; i += 4, j += 3) { last[i] = ENC[Math.min(4096, acc[j] * k | 0)]; last[i + 1] = ENC[Math.min(4096, acc[j + 1] * k | 0)]; last[i + 2] = ENC[Math.min(4096, acc[j + 2] * k | 0)]; } }
-  drawOsd();
-  pending = { flash: P.flash > 0, quality: +vals.quality, exif: vals.exif === "1" };
+  pending = { flash: lit, quality: BASE.jpeg / 100, exif: vals.exif === "1" };
   worker.postMessage({ type: "source", w: tw, h: th, data: last }, [last.buffer]);
-  worker.postMessage({ type: "render", p: P, seed: (Math.random() * 1e9) | 0 });
+  worker.postMessage({ type: "render", p: P, seed });
 }
 worker.onmessage = (e) => {
   const m = e.data, info = pending;
-  if (m.type === "error") { S.busy = false; flashMsg("Errore di registrazione", 2000); return; }
+  if (m.type === "error") { S.busy = false; flashMsg("ERRORE", 2000); return; }
   const cv = document.createElement("canvas"); cv.width = m.w; cv.height = m.h;
   cv.getContext("2d").putImageData(new ImageData(m.data, m.w, m.h), 0, 0);
   cv.toBlob(async (blob) => {
@@ -1127,7 +1212,7 @@ worker.onmessage = (e) => {
     const s = { id: Date.now(), name, blob: b, w: m.w, h: m.h };
     shots.unshift(s); await tx("readwrite", (st) => st.put(s));
     S.busy = false; updateRemaining();
-    await loadPhoto(s); S.review = s; drawOsd();            // revisione sul display, come la fotocamera vera
+    await loadPhoto(s); S.review = s; drawOsd();
     clearTimeout(reviewT); reviewT = setTimeout(endReview, 1600);
   }, "image/jpeg", info.quality);
 };
@@ -1142,7 +1227,7 @@ function tx(mode, fn) { return new Promise((res) => { if (!db) return res(null);
 async function deleteCurrent() {
   const s = shots[S.playIdx]; if (!s) return;
   shots.splice(S.playIdx, 1); await tx("readwrite", (st) => st.delete(s.id));
-  photoFor = null; flashMsg(s.name + " eliminata", 1200); showPlay(Math.min(S.playIdx, shots.length - 1)); updateRemaining();
+  photoFor = null; flashMsg("ELIMINATA", 1200); showPlay(Math.min(S.playIdx, shots.length - 1)); updateRemaining();
 }
 async function share(list) {
   const files = list.map((s) => new File([s.blob], s.name, { type: "image/jpeg" }));
