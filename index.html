@@ -2,15 +2,15 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EX-M2 mirino</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>EX-M2</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EX-M2">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
 <style>
 
 /* --- Token Grado Zero --- */
@@ -106,144 +106,110 @@ h1, h2, h3, p { margin: 0; font-weight: 400; }
 .gz-mode:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
 
 
-/* --- Pagina --- */
-.bar { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-4); height: 44px; padding: 0 var(--space-4); background: var(--surface); border-bottom: var(--border-hairline) solid var(--line); }
-.notice { text-align: center; text-transform: lowercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.notice.is-busy, .breathe { animation: breathe 2s ease-in-out infinite; }
+/* --- App a schermo fisso --- */
+html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; background: #000; }
+* { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+.app { position: fixed; left: 0; top: 0; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--sat, 47px) var(--space-4) var(--sab, 34px); background: var(--surface); color: var(--ink); transform-origin: 50% 50%; overflow: hidden; }
+.app::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: var(--sat, 47px); background: #000; } /* sotto la barra di stato: testo bianco */
+.bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-2); height: var(--control-height); flex: none; }
+.notice { text-align: center; text-transform: lowercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 400 10px/14px var(--font-sans); }
+.notice.is-busy { animation: breathe 2s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: .2; } }
-@media (prefers-reduced-motion: reduce) { .notice.is-busy, .breathe { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .notice.is-busy { animation: none; } }
+.view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.view[hidden] { display: none; }
 
-.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: var(--space-5); padding: var(--space-4); max-width: 1400px; margin: 0 auto; }
-@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } }
-.col { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
-.row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-
-.vf { position: relative; border: var(--border-hairline) solid var(--line); background: var(--surface); overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
-.vf canvas { display: block; width: 100%; height: auto; }
+.stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: none; }
+.vf { position: relative; border: var(--border-hairline) solid var(--line); overflow: hidden; }
+.vf canvas { display: block; width: 100%; height: 100%; }
 .vf__off { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-4); text-align: center; background: var(--surface); }
-.vf__off p { max-width: 36ch; font: italic 400 10px/14px var(--font-sans); }
+.vf__off p { max-width: 30ch; font: italic 400 10px/14px var(--font-sans); }
 .vf__off[hidden] { display: none; }
 .vf__blink { position: absolute; inset: 0; background: var(--ink); opacity: 0; pointer-events: none; }
 .vf__blink.is-on { opacity: 1; }
 @media (prefers-reduced-motion: no-preference) { .vf__blink { transition: opacity 80ms ease-out; } .vf__blink.is-on { transition: opacity 0ms; } }
-.vf-foot { display: flex; justify-content: space-between; gap: var(--space-4); font: italic 400 10px/14px var(--font-sans); margin-top: calc(-1 * var(--space-3)); }
 
-.shoot { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-2); }
-.shoot .gz-btn { position: relative; }
-.shoot .gz-btn::after { content: ""; position: absolute; inset: -8px 0; } /* area di tocco da 44px */
+.foot { display: flex; justify-content: space-between; gap: var(--space-3); font: italic 400 10px/14px var(--font-sans); flex: none; margin-top: calc(-1 * var(--space-2)); white-space: nowrap; }
+.foot span { overflow: hidden; text-overflow: ellipsis; }
 
-.roll { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
-.roll button { position: relative; display: block; padding: 0; margin: 0 -1px -1px 0; border: var(--border-hairline) solid var(--line); background: var(--surface); cursor: pointer; aspect-ratio: 1; overflow: hidden; }
-.roll button img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.roll button:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); z-index: 1; }
-.roll-empty { font: italic 400 16px/22px var(--font-sans); }
-.detail { display: flex; flex-direction: column; gap: var(--space-2); }
-.detail img { display: block; width: 100%; height: auto; border: var(--border-hairline) solid var(--line); }
-.detail[hidden], .rollview[hidden], .shootview[hidden] { display: none; }
-.label-s { font: 400 10px/14px var(--font-sans); }
+/* Selettore a frecce: modalità e regolazioni */
+.step { display: grid; grid-template-columns: var(--control-height) minmax(0, 1fr) var(--control-height); height: var(--control-height); flex: none; border: var(--border-hairline) solid var(--line); }
+.step > .gz-btn { border: 0; height: 100%; padding: 0; }
+.step > .gz-btn:first-child { border-right: var(--border-hairline) solid var(--line); }
+.step > .gz-btn:last-child { border-left: var(--border-hairline) solid var(--line); }
+.step svg { width: var(--icon-m); height: var(--icon-m); display: block; }
+.step__mid { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0 var(--space-2); min-width: 0; white-space: nowrap; }
+.step__mid span { overflow: hidden; text-overflow: ellipsis; }
+.step__idx { font-style: italic; font-variant-numeric: tabular-nums; flex: none; }
+.step .gz-fader { height: 100%; padding: 0 var(--space-2); grid-template-columns: 11ch minmax(0, 1fr) 8ch; }
+.step .gz-fader__rail { touch-action: none; cursor: ew-resize; }
+.step .gz-fader input { pointer-events: none; }
+button.step__mid { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+button.step__mid:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: -3px; }
+
+.row3 { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: var(--space-2); flex: none; }
+.row3 .gz-btn { width: 100%; }
+
+.viewer { position: relative; }
+.viewer img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.viewer p { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: var(--space-4); font: italic 400 16px/22px var(--font-sans); }
+.viewer p[hidden] { display: none; }
 </style>
 </head>
 <body>
+<div class="app" id="app">
+  <header class="bar">
+    <h1 class="gz-title">EX-M2&nbsp;<button class="gz-mode" id="mode" aria-label="Cambia vista: mirino o rullino">mirino</button></h1>
+    <p class="notice" id="notice" role="status" aria-live="polite"></p>
+    <button class="gz-theme" id="theme" aria-label="Cambia tema">●</button>
+  </header>
 
-<header class="bar">
-  <h1 class="gz-title">EX-M2&nbsp;<button class="gz-mode" id="mode" aria-label="Cambia vista: mirino o rullino">mirino</button></h1>
-  <p class="notice" id="notice" role="status" aria-live="polite"></p>
-  <button class="gz-theme" id="theme" aria-label="Cambia tema">●</button>
-</header>
-
-<main class="main">
-  <div class="col">
-    <section class="shootview col" id="shootview" aria-label="Mirino">
+  <section class="view" id="shootview" aria-label="Mirino">
+    <div class="stage" id="stage">
       <div class="vf" id="vf">
-        <canvas id="gl" width="1200" height="900" aria-label="Mirino dal vivo con l'effetto applicato"></canvas>
+        <canvas id="gl" aria-label="Mirino dal vivo con l'effetto applicato"></canvas>
         <div class="vf__blink" id="blink"></div>
         <div class="vf__off" id="off">
           <button class="gz-btn" id="power">Accendi la fotocamera</button>
-          <p id="offmsg">Il mirino mostra già la resa della EX-M2. Tocca l'immagine o «Scatta» per fotografare.</p>
+          <p id="offmsg">Tocca il mirino per scattare, trascina di lato per cambiare scena.</p>
         </div>
       </div>
-      <p class="vf-foot"><span id="foot-l">—</span><span id="foot-r"></span></p>
-      <div class="shoot">
-        <button class="gz-btn" id="shutter" disabled>Scatta</button>
-        <button class="gz-btn gz-btn--secondary" id="flashbtn" aria-pressed="false">Flash</button>
-        <button class="gz-btn gz-btn--secondary" id="flip" aria-label="Cambia fotocamera, anteriore o posteriore">Gira</button>
-      </div>
-    </section>
-
-    <section class="rollview col" id="rollview" hidden aria-label="Rullino">
-      <div class="detail" id="detail" hidden>
-        <img id="detail-img" alt="Scatto selezionato">
-        <div class="row" style="justify-content: space-between">
-          <span class="label-s" id="detail-meta"></span>
-          <span class="row">
-            <button class="gz-btn gz-btn--ghost" id="d-close">Chiudi</button>
-            <button class="gz-btn gz-btn--secondary" id="d-del">Elimina</button>
-            <button class="gz-btn" id="d-save">Salva in Foto</button>
-          </span>
-        </div>
-      </div>
-      <div class="roll" id="roll"></div>
-      <p class="roll-empty" id="roll-empty">Nessuno scatto: torna al mirino e fotografa.</p>
-    </section>
-  </div>
-
-  <div class="col">
-    <label class="gz-field">
-      <span class="gz-field__label">Scena</span>
-      <span class="gz-select">
-        <select id="preset">
-          <option value="giorno">Giorno</option>
-          <option value="interno">Interno, luce calda</option>
-          <option value="controluce">Controluce</option>
-          <option value="flash">Flash</option>
-          <option value="notte">Notte a mano libera</option>
-          <option value="mosso">Posa lunga</option>
-          <option value="pulito">Neutro</option>
-        </select>
-        <svg class="gz-select__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M2 4.5l4 4 4-4"/></svg>
-      </span>
-    </label>
-    <div class="pair">
-      <label class="gz-field">
-        <span class="gz-field__label">Dimensione</span>
-        <span class="gz-select">
-          <select id="size">
-            <option value="1600">1600 × 1200</option>
-            <option value="1280">1280 × 960</option>
-            <option value="640">640 × 480</option>
-          </select>
-          <svg class="gz-select__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M2 4.5l4 4 4-4"/></svg>
-        </span>
-      </label>
-      <label class="gz-field">
-        <span class="gz-field__label">Qualità</span>
-        <span class="gz-select">
-          <select id="quality">
-            <option value="0.84">Fine</option>
-            <option value="0.68" selected>Normale</option>
-            <option value="0.5">Economia</option>
-          </select>
-          <svg class="gz-select__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M2 4.5l4 4 4-4"/></svg>
-        </span>
-      </label>
     </div>
-    <label class="gz-toggle">
-      <span class="gz-toggle__text">Scrivi EXIF<span class="gz-toggle__help">Marca, modello, F3.2, 7,5 mm nel file salvato</span></span>
-      <input type="checkbox" role="switch" id="exif">
-    </label>
-    <div class="gz-grid-area"><div class="gz-grid" id="grid" style="--gz-grid-cols: 1"></div></div>
-    <div class="gz-term" aria-label="Dati">
-      <dl class="gz-term__meta">
-        <div><dt>prossimo file</dt><dd id="m-file">CIMG0001.JPG</dd></div>
-        <div><dt>ultimo scatto</dt><dd id="m-last">—</dd></div>
-        <div><dt>mirino</dt><dd id="m-fps">—</dd></div>
-        <div><dt>camera</dt><dd id="m-cam">—</dd></div>
-      </dl>
-      <div class="gz-term__log" id="log"></div>
+    <p class="foot"><span id="foot-l">—</span><span id="foot-r"></span></p>
+    <div class="step" aria-label="Scena">
+      <button class="gz-btn gz-btn--ghost" id="mprev" aria-label="Scena precedente"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M10 3L5 8l5 5"/></svg></button>
+      <div class="step__mid"><span id="mname">Giorno</span><span class="step__idx" id="midx">1 / 7</span></div>
+      <button class="gz-btn gz-btn--ghost" id="mnext" aria-label="Scena successiva"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M6 3l5 5-5 5"/></svg></button>
     </div>
-  </div>
-</main>
+    <div class="row3">
+      <button class="gz-btn gz-btn--secondary" id="flashbtn" aria-pressed="false">Flash</button>
+      <button class="gz-btn" id="shutter" disabled>Scatta</button>
+      <button class="gz-btn gz-btn--secondary" id="flip" aria-label="Cambia fotocamera, anteriore o posteriore">Gira</button>
+    </div>
+  </section>
+
+  <section class="view" id="rollview" hidden aria-label="Rullino">
+    <div class="stage" id="vstage">
+      <div class="viewer" id="viewer">
+        <img id="vimg" alt="">
+        <p id="vempty">Nessuno scatto: torna al mirino e fotografa.</p>
+      </div>
+    </div>
+    <p class="foot"><span id="vmeta"></span><span id="vcount"></span></p>
+    <div class="row3">
+      <button class="gz-btn gz-btn--secondary" id="del">Elimina</button>
+      <button class="gz-btn gz-btn--secondary" id="saveall">Salva tutti</button>
+      <button class="gz-btn" id="save">Salva</button>
+    </div>
+    <div class="step" aria-label="Regolazioni">
+      <button class="gz-btn gz-btn--ghost" id="sprev" aria-label="Regolazione precedente"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M10 3L5 8l5 5"/></svg></button>
+      <div id="sbody"></div>
+      <button class="gz-btn gz-btn--ghost" id="snext" aria-label="Regolazione successiva"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1"><path d="M6 3l5 5-5 5"/></svg></button>
+    </div>
+    <p class="foot" style="margin-top: calc(-1 * var(--space-2))"><span id="sinfo"></span><span id="sidx"></span></p>
+  </section>
+</div>
+<div id="probe" style="position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none"></div>
 
 <script type="text/worker" id="worker-src">
 
@@ -581,11 +547,11 @@ onmessage = (e) => {
 precision highp float;
 uniform sampler2D uV;
 uniform vec4 uCrop;
-uniform float uMirror;
+uniform float uMirror, uRot;
 vec3 srcLin(vec2 uv) {
-  vec2 q = vec2(uv.x, 1.0 - uv.y);
+  vec2 r = uCrop.xy + clamp(vec2(uv.x, 1.0 - uv.y), 0.0, 1.0) * uCrop.zw;
+  vec2 q = uRot > 0.5 ? vec2(r.y, 1.0 - r.x) : uRot < -0.5 ? vec2(1.0 - r.y, r.x) : r;
   if (uMirror > 0.5) q.x = 1.0 - q.x;
-  q = uCrop.xy + clamp(q, 0.0, 1.0) * uCrop.zw;
   vec3 s = texture(uV, q).rgb;
   vec3 l = mix(s / 12.92, pow((s + 0.055) / 1.055, vec3(2.4)), step(0.04045, s));
   vec3 ex = max(vec3(0.0), s - 0.94) / 0.06;
@@ -594,7 +560,6 @@ vec3 srcLin(vec2 uv) {
 float h12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float gn(vec2 p) { return (h12(p) + h12(p + 17.31) + h12(p + 41.73) - 1.5) * 2.0; }
 </script>
-
 <script id="glsl-smear" type="x-shader/x-fragment">
 uniform vec2 uRes;
 uniform float uEv, uK;
@@ -695,22 +660,86 @@ void main() {
 }
 </script>
 
+
+
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+/* --- Niente zoom, niente scroll --- */
+["gesturestart", "gesturechange", "gestureend"].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
+document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
+document.addEventListener("dblclick", (e) => e.preventDefault());
+
+/* --- Interfaccia solidale al telefono: se l'iPhone ruota, l'app ruota al contrario --- */
+const app = $("app");
+let rot = 0, safeTop = +store.get("exm2-sat", 0), safeBot = +store.get("exm2-sab", 0);
+function angle() {
+  let a = typeof window.orientation === "number" ? window.orientation : (screen.orientation ? screen.orientation.angle : 0);
+  if (a === 270) a = -90;
+  return a;
+}
+function layout() {
+  const W = window.innerWidth, H = window.innerHeight, a = angle();
+  const touch = navigator.maxTouchPoints > 0;
+  const pr = $("probe"), cs = getComputedStyle(pr);
+  if (H >= W) {
+    const t = parseFloat(cs.paddingTop) || 0, b = parseFloat(cs.paddingBottom) || 0;
+    if (t > 0) { safeTop = t; store.set("exm2-sat", t); }
+    if (b > 0) { safeBot = b; store.set("exm2-sab", b); }
+  }
+  const sat = safeTop || (touch ? 47 : 16), sab = safeBot || (touch ? 34 : 16);
+  app.style.setProperty("--sat", sat + "px"); app.style.setProperty("--sab", sab + "px");
+  if (W > H && touch && (a === 90 || a === -90)) {
+    rot = a === 90 ? 1 : -1;
+    app.style.width = H + "px"; app.style.height = W + "px";
+    app.style.left = (W - H) / 2 + "px"; app.style.top = (H - W) / 2 + "px";
+    app.style.transform = "rotate(" + (a === 90 ? -90 : 90) + "deg)";
+  } else {
+    rot = 0;
+    const w = Math.min(W, 440);
+    app.style.width = w + "px"; app.style.height = H + "px";
+    app.style.left = (W - w) / 2 + "px"; app.style.top = "0px";
+    app.style.transform = "none";
+  }
+  fitStages();
+}
+/* Il mirino e la foto prendono il riquadro 3:4 più grande che sta nello spazio libero */
+function fitStages() {
+  const st = $("stage"), vf = $("vf");
+  if (st.clientWidth) {
+    const w = st.clientWidth, h = st.clientHeight;
+    const cw = Math.floor(Math.min(w, h * 3 / 4)), ch = Math.floor(cw * 4 / 3);
+    vf.style.width = cw + "px"; vf.style.height = ch + "px";
+  }
+  const vs = $("vstage"), vw = $("viewer");
+  if (vs.clientWidth) { vw.style.width = vs.clientWidth + "px"; vw.style.height = vs.clientHeight + "px"; }
+}
+window.addEventListener("resize", () => setTimeout(layout, 60));
+window.addEventListener("orientationchange", () => setTimeout(layout, 250));
+
+/* Trascinamento laterale, misurato nel verso del telefono */
+function swipe(el, onLeft, onRight, onTap) {
+  let x0 = 0, y0 = 0, down = false;
+  el.addEventListener("pointerdown", (e) => { if (e.target.closest("button")) return; down = true; x0 = e.clientX; y0 = e.clientY; });
+  el.addEventListener("pointerup", (e) => {
+    if (!down) return; down = false;
+    let dx = e.clientX - x0, dy = e.clientY - y0;
+    if (rot === 1) dx = -dy; else if (rot === -1) dx = dy;
+    if (Math.abs(dx) > 40) (dx < 0 ? onLeft : onRight)();
+    else if (Math.abs(e.clientX - x0) < 12 && Math.abs(e.clientY - y0) < 12 && onTap) onTap();
+  });
+  el.addEventListener("pointercancel", () => { down = false; });
+}
 
 /* --- Tema --- */
 (function () {
-  let t = null;
-  try { t = localStorage.getItem("exm2-theme"); } catch (e) {}
+  const apply = (n) => { document.documentElement.dataset.theme = n; };
+  let t = store.get("exm2-theme", null);
   if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  const apply = (n) => { document.documentElement.dataset.theme = n; document.querySelector('meta[name="theme-color"]').content = n === "dark" ? "#000000" : "#ffffff"; };
   apply(t);
-  $("theme").addEventListener("click", () => {
-    const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    apply(n);
-    try { localStorage.setItem("exm2-theme", n); } catch (e) {}
-  });
+  $("theme").addEventListener("click", () => { const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; apply(n); store.set("exm2-theme", n); });
 })();
 
 let noticeTimer = 0;
@@ -719,26 +748,20 @@ function notice(text, busy) {
   clearTimeout(noticeTimer);
   el.textContent = text;
   el.classList.toggle("is-busy", !!busy);
-  if (!busy && text) noticeTimer = setTimeout(() => { el.textContent = ""; }, 3200);
-}
-function log(text) {
-  const el = $("log"), d = document.createElement("div");
-  d.textContent = text; el.appendChild(d);
-  while (el.children.length > 30) el.firstChild.remove();
-  el.scrollTop = el.scrollHeight;
+  if (!busy && text) noticeTimer = setTimeout(() => { el.textContent = ""; }, 2600);
 }
 
-/* --- Regolazioni --- */
+/* --- Scene e regolazioni --- */
 const POSA = [1, 2, 3, 4, 6, 8, 10];
 const DEFS = [
   { k: "ev", l: "Esposizione", min: -20, max: 20, f: (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v / 10).toFixed(1).replace(".", ",") + " EV" },
-  { k: "posa", l: "Posa", min: 0, max: POSA.length - 1, f: (v) => "1/" + Math.round(30 / POSA[v]) + " s", keep: true },
+  { k: "posa", l: "Posa", min: 0, max: POSA.length - 1, f: (v) => "1/" + Math.round(30 / POSA[v]) + " s" },
   { k: "hl", l: "Alte luci" },
   { k: "sh", l: "Ombre" },
   { k: "ct", l: "Contrasto" },
   { k: "sat", l: "Saturazione", max: 200 },
-  { k: "temp", l: "Temperatura", min: -100, max: 100, f: (v) => (v > 0 ? "calda " : v < 0 ? "fredda " : "") + Math.abs(v), keep: true },
-  { k: "tint", l: "Tinta", min: -100, max: 100, f: (v) => (v > 0 ? "verde " : v < 0 ? "magenta " : "") + Math.abs(v), keep: true },
+  { k: "temp", l: "Temperatura", min: -100, max: 100, f: (v) => (v > 0 ? "calda " : v < 0 ? "fredda " : "") + Math.abs(v) },
+  { k: "tint", l: "Tinta", min: -100, max: 100, f: (v) => (v > 0 ? "verde " : v < 0 ? "magenta " : "") + Math.abs(v) },
   { k: "flash", l: "Flash", f: (v) => v ? String(v) : "spento" },
   { k: "soft", l: "Morbidezza" },
   { k: "focus", l: "Fuori fuoco" },
@@ -750,6 +773,15 @@ const DEFS = [
   { k: "chroma", l: "Rumore crom." },
   { k: "sharp", l: "Nitidezza" },
 ];
+const CHOICES = [
+  { k: "size", l: "Dimensione", opts: [["1600", "1600 × 1200"], ["1280", "1280 × 960"], ["640", "640 × 480"]] },
+  { k: "quality", l: "Qualità", opts: [["0.84", "Fine"], ["0.68", "Normale"], ["0.5", "Economia"]] },
+  { k: "exif", l: "EXIF EX-M2", opts: [["0", "no"], ["1", "sì"]] },
+];
+const MODES = [
+  ["giorno", "Automatica"], ["interno", "Interno, luce calda"], ["controluce", "Controluce"], ["flash", "Flash"],
+  ["notte", "Notte a mano libera"], ["mosso", "Posa lunga"], ["pulito", "Neutra"],
+];
 const PRESETS = {
   giorno:     { ev: 0,   posa: 0, hl: 55, sh: 22, ct: 45, sat: 125, temp: -14, tint: 6,  flash: 0,  soft: 40, focus: 0,  vig: 32, dist: 25, ca: 35, smear: 45, noise: 18, chroma: 28, sharp: 55 },
   interno:    { ev: -3,  posa: 3, hl: 50, sh: 28, ct: 38, sat: 112, temp: 48,  tint: -4, flash: 0,  soft: 45, focus: 4,  vig: 38, dist: 25, ca: 30, smear: 45, noise: 55, chroma: 62, sharp: 50 },
@@ -759,36 +791,73 @@ const PRESETS = {
   mosso:      { ev: 0,   posa: 6, hl: 55, sh: 24, ct: 45, sat: 120, temp: -10, tint: 5,  flash: 0,  soft: 42, focus: 6,  vig: 32, dist: 25, ca: 35, smear: 45, noise: 25, chroma: 34, sharp: 52 },
   pulito:     { ev: 0,   posa: 0, hl: 0,  sh: 0,  ct: 0,  sat: 100, temp: 0,   tint: 0,  flash: 0,  soft: 0,  focus: 0,  vig: 0,  dist: 0,  ca: 0,  smear: 0,  noise: 0,  chroma: 0,  sharp: 0  },
 };
-const inputs = {};
-(function buildGrid() {
-  const grid = $("grid");
-  const col = document.createElement("div"); col.className = "gz-grid__col";
-  col.innerHTML = '<div class="gz-grid__head"><h2 class="gz-grid__title">Regolazioni</h2><span class="gz-grid__aside">doppio tocco: valore della scena</span></div>';
-  DEFS.forEach((d) => {
-    const id = "f-" + d.k;
-    const row = document.createElement("div"); row.className = "gz-fader";
-    row.innerHTML = '<label class="gz-fader__label" for="' + id + '"></label><div class="gz-fader__rail"><input type="range" id="' + id + '"></div><span class="gz-fader__value"></span>';
-    row.querySelector("label").textContent = d.l;
-    const inp = row.querySelector("input");
-    inp.min = d.min ?? 0; inp.max = d.max ?? 100; inp.step = 1;
-    const val = row.querySelector(".gz-fader__value");
-    const upd = () => {
-      const v = +inp.value;
-      val.textContent = d.f ? d.f(v) : String(v);
-      row.classList.toggle("is-off", v === 0 && d.k !== "ev" && !d.keep);
-      if (d.k === "flash") $("flashbtn").setAttribute("aria-pressed", v > 0 ? "true" : "false");
-      if (d.k === "posa") $("foot-r").textContent = "posa " + val.textContent;
-    };
-    inp.addEventListener("input", upd);
-    inp.addEventListener("dblclick", () => { inp.value = PRESETS[$("preset").value][d.k]; upd(); });
-    inputs[d.k] = { inp, upd };
-    col.appendChild(row);
-  });
-  grid.appendChild(col);
-})();
-function applyPreset(name) { const p = PRESETS[name]; for (const k in p) if (inputs[k]) { inputs[k].inp.value = p[k]; inputs[k].upd(); } }
+let vals = {}, modeIdx = 0;
+try { vals = JSON.parse(store.get("exm2-vals", "{}")) || {}; } catch (e) { vals = {}; }
+modeIdx = Math.max(0, MODES.findIndex((m) => m[0] === store.get("exm2-mode", "giorno")));
+if (!("ev" in vals)) Object.assign(vals, PRESETS[MODES[modeIdx][0]]);
+for (const c of CHOICES) if (!(c.k in vals)) vals[c.k] = c.k === "quality" ? "0.68" : c.opts[0][0];
+const save = () => store.set("exm2-vals", JSON.stringify(vals));
+
+function setMode(i, quiet) {
+  modeIdx = (i + MODES.length) % MODES.length;
+  const [k, name] = MODES[modeIdx];
+  Object.assign(vals, PRESETS[k]);
+  $("mname").textContent = name; $("midx").textContent = (modeIdx + 1) + " / " + MODES.length;
+  store.set("exm2-mode", k); save(); refresh();
+  if (!quiet) notice(name);
+}
+$("mprev").addEventListener("click", () => setMode(modeIdx - 1));
+$("mnext").addEventListener("click", () => setMode(modeIdx + 1));
+let lastFlash = 70;
+$("flashbtn").addEventListener("click", () => {
+  if (vals.flash > 0) { lastFlash = vals.flash; vals.flash = 0; } else vals.flash = lastFlash || 70;
+  save(); refresh(); notice(vals.flash > 0 ? "flash acceso" : "flash spento");
+});
+
+/* Regolazioni una alla volta */
+const ITEMS = [...DEFS.map((d) => ({ t: "f", ...d })), ...CHOICES.map((c) => ({ t: "c", ...c }))];
+let itemIdx = +store.get("exm2-item", 0) % ITEMS.length;
+function fmt(d, v) { return d.f ? d.f(v) : String(v); }
+function renderItem() {
+  const d = ITEMS[itemIdx], body = $("sbody");
+  body.textContent = "";
+  $("sidx").textContent = (itemIdx + 1) + " / " + ITEMS.length;
+  $("sinfo").textContent = d.t === "f" ? "trascina per regolare · la scena le reimposta" : "tocca per cambiare";
+  if (d.t === "f") {
+    body.className = "gz-fader";
+    body.innerHTML = '<label class="gz-fader__label" for="sinput"></label><div class="gz-fader__rail"><input type="range" id="sinput"></div><span class="gz-fader__value"></span>';
+    body.querySelector("label").textContent = d.l;
+    const inp = body.querySelector("input"), val = body.querySelector(".gz-fader__value"), rail = body.querySelector(".gz-fader__rail");
+    const min = d.min ?? 0, max = d.max ?? 100;
+    inp.min = min; inp.max = max; inp.step = 1; inp.value = vals[d.k];
+    const set = (v) => { v = Math.max(min, Math.min(max, Math.round(v))); vals[d.k] = v; inp.value = v; val.textContent = fmt(d, v); body.classList.toggle("is-off", v === 0 && ["hl","sh","ct","flash","soft","focus","vig","dist","ca","smear","noise","chroma","sharp"].includes(d.k)); save(); refresh(); };
+    set(vals[d.k]);
+    inp.addEventListener("input", () => set(+inp.value));
+    const fromX = (e) => { const r = rail.getBoundingClientRect(); let t; if (rot === 1) t = (r.bottom - e.clientY) / r.height; else if (rot === -1) t = (e.clientY - r.top) / r.height; else t = (e.clientX - r.left) / r.width; set(min + Math.max(0, Math.min(1, t)) * (max - min)); };
+    rail.addEventListener("pointerdown", (e) => { rail.setPointerCapture(e.pointerId); fromX(e); });
+    rail.addEventListener("pointermove", (e) => { if (rail.hasPointerCapture(e.pointerId)) fromX(e); });
+  } else {
+    body.className = "";
+    const b = document.createElement("button");
+    b.className = "step__mid"; b.style.width = "100%"; b.style.height = "100%";
+    const l = document.createElement("span"), v = document.createElement("span");
+    const show = () => { l.textContent = d.l; v.textContent = (d.opts.find((o) => o[0] === vals[d.k]) || d.opts[0])[1]; };
+    b.append(l, v); show();
+    b.addEventListener("click", () => { const i = d.opts.findIndex((o) => o[0] === vals[d.k]); vals[d.k] = d.opts[(i + 1) % d.opts.length][0]; save(); show(); refresh(); });
+    body.appendChild(b);
+  }
+}
+$("sprev").addEventListener("click", () => { itemIdx = (itemIdx - 1 + ITEMS.length) % ITEMS.length; store.set("exm2-item", itemIdx); renderItem(); });
+$("snext").addEventListener("click", () => { itemIdx = (itemIdx + 1) % ITEMS.length; store.set("exm2-item", itemIdx); renderItem(); });
+
+function refresh() {
+  $("flashbtn").setAttribute("aria-pressed", vals.flash > 0 ? "true" : "false");
+  const sz = CHOICES[0].opts.find((o) => o[0] === vals.size)[1], q = CHOICES[1].opts.find((o) => o[0] === vals.quality)[1].toLowerCase();
+  $("foot-l").textContent = sz + " · " + q + (vals.exif === "1" ? " · exif" : "");
+  $("foot-r").textContent = "posa 1/" + Math.round(30 / POSA[vals.posa]) + " s";
+}
 function params() {
-  const v = (k) => +inputs[k].inp.value;
+  const v = (k) => +vals[k];
   return {
     ev: v("ev") / 10, hl: v("hl") / 100, sh: v("sh") / 100, ct: v("ct") / 100, sat: v("sat") / 100,
     temp: v("temp") / 100, tint: v("tint") / 100, flash: v("flash") / 100,
@@ -796,13 +865,14 @@ function params() {
     shake: 0, dir: 0, noise: v("noise") / 100, chroma: v("chroma") / 100, sharp: v("sharp") / 100,
   };
 }
-$("preset").addEventListener("change", (e) => { applyPreset(e.target.value); notice("scena: " + e.target.selectedOptions[0].textContent); try { localStorage.setItem("exm2-preset", e.target.value); } catch (er) {} });
-let lastFlash = 70;
-$("flashbtn").addEventListener("click", () => {
-  const f = inputs.flash;
-  if (+f.inp.value > 0) { lastFlash = +f.inp.value; f.inp.value = 0; } else f.inp.value = lastFlash || 70;
-  f.upd(); notice(+f.inp.value > 0 ? "flash acceso" : "flash spento");
-});
+
+/* --- Viste --- */
+function setView(roll) {
+  $("mode").textContent = roll ? "rullino" : "mirino";
+  $("rollview").hidden = !roll; $("shootview").hidden = roll;
+  requestAnimationFrame(() => { fitStages(); if (roll) showShot(shotIdx); });
+}
+$("mode").addEventListener("click", () => setView($("rollview").hidden));
 
 /* --- Fotocamera --- */
 const video = document.createElement("video");
@@ -810,7 +880,7 @@ video.setAttribute("playsinline", ""); video.muted = true; video.autoplay = true
 let stream = null, facing = "environment", running = false;
 async function startCamera() {
   if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    $("offmsg").textContent = "Qui la fotocamera non è disponibile: apri la pagina da un indirizzo https o dall'icona sulla schermata Home.";
+    $("offmsg").textContent = "Qui la fotocamera non è disponibile: apri l'app dall'icona sulla schermata Home.";
     return;
   }
   try {
@@ -818,35 +888,27 @@ async function startCamera() {
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1440 }, aspectRatio: { ideal: 4 / 3 } } });
     video.srcObject = stream;
     await video.play();
-    const s = stream.getVideoTracks()[0].getSettings();
-    $("m-cam").textContent = (facing === "user" ? "anteriore" : "posteriore") + " · " + (s.width || video.videoWidth) + " × " + (s.height || video.videoHeight);
     $("off").hidden = true; $("shutter").disabled = false; running = true;
-    log("fotocamera accesa");
   } catch (e) {
     const n = e && e.name;
-    $("offmsg").textContent = n === "NotAllowedError" ? "Accesso alla fotocamera negato: consentilo nelle impostazioni del browser e riprova." : "Non riesco ad accendere la fotocamera (" + (n || "errore") + ").";
+    $("offmsg").textContent = n === "NotAllowedError" ? "Accesso alla fotocamera negato: consentilo nelle impostazioni e riprova." : "Non riesco ad accendere la fotocamera (" + (n || "errore") + ").";
     $("off").hidden = false;
   }
 }
 $("power").addEventListener("click", startCamera);
-$("flip").addEventListener("click", () => { facing = facing === "environment" ? "user" : "environment"; if (running) startCamera(); });
+$("flip").addEventListener("click", () => { facing = facing === "environment" ? "user" : "environment"; if (running) startCamera(); notice(facing === "user" ? "fotocamera anteriore" : "fotocamera posteriore"); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && running && stream && stream.getVideoTracks()[0].readyState === "ended") startCamera(); });
 
 /* --- Mirino WebGL --- */
 const canvas = $("gl");
 const gl = canvas.getContext("webgl2", { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
 let progs = null;
-function compile(type, src) {
-  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
-  return s;
-}
+function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
 function program(fsrc) {
   const p = gl.createProgram();
   gl.attachShader(p, compile(gl.VERTEX_SHADER, "#version 300 es\nin vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }"));
   gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fsrc));
-  gl.bindAttribLocation(p, 0, "p");
-  gl.linkProgram(p);
+  gl.bindAttribLocation(p, 0, "p"); gl.linkProgram(p);
   if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
   const u = {}, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name.replace(/\[0\]$/, "")] = gl.getUniformLocation(p, a.name); }
@@ -870,21 +932,29 @@ if (gl) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     vTex = tex(); smTex = tex(SMW, 1); smFbo = fbo(smTex);
-  } catch (e) { progs = null; log("errore shader: " + e.message); }
+  } catch (e) { progs = null; console.error(e); }
 }
 if (!progs) $("offmsg").textContent = "Questo browser non ha WebGL 2: il mirino non può funzionare.";
 
-function frameGeom() {
+/* Ritaglio 3:4 nello spazio del telefono, e lo stesso riquadro nel fotogramma vero */
+function geom() {
   const vw = video.videoWidth, vh = video.videoHeight;
-  const portrait = vh > vw, ar = portrait ? 3 / 4 : 4 / 3;
+  const ew = rot ? vh : vw, eh = rot ? vw : vh, ar = 3 / 4;
   let cw = 1, ch = 1;
-  if (vw / vh > ar) cw = (vh * ar) / vw; else ch = (vw / ar) / vh;
-  return { vw, vh, portrait, ar, crop: [(1 - cw) / 2, (1 - ch) / 2, cw, ch] };
+  if (ew / eh > ar) cw = (eh * ar) / ew; else ch = (ew / ar) / eh;
+  const cx = (1 - cw) / 2, cy = (1 - ch) / 2;
+  let sx, sy, sw, sh;
+  if (rot === 1) { sx = cy; sw = ch; sy = 1 - (cx + cw); sh = cw; }
+  else if (rot === -1) { sx = 1 - (cy + ch); sw = ch; sy = cx; sh = cw; }
+  else { sx = cx; sw = cw; sy = cy; sh = ch; }
+  return { vw, vh, crop: [cx, cy, cw, ch], src: [sx * vw, sy * vh, sw * vw, sh * vh] };
 }
-function sizeCanvas(ar) {
-  const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
+let maxL = 1200, frames = 0, fpsT = performance.now();
+function sizeCanvas() {
+  const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+  if (!cssW || !cssH) return false;
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  let w = Math.round(cssW * dpr), h = Math.round(w / ar);
+  let w = Math.round(cssW * dpr), h = Math.round(cssH * dpr);
   const L = Math.max(w, h);
   if (L > maxL) { const k = maxL / L; w = Math.round(w * k); h = Math.round(h * k); }
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
@@ -892,25 +962,21 @@ function sizeCanvas(ar) {
     if (aTex) { gl.deleteTexture(aTex); gl.deleteFramebuffer(aFbo); }
     aTex = tex(w, h); aFbo = fbo(aTex); fW = w; fH = h;
   }
+  return true;
 }
-let frames = 0, fpsT = performance.now(), maxL = 1200;
 function draw(now) {
   requestAnimationFrame(draw);
-  if (!progs || !running || video.readyState < 2 || !video.videoWidth || $("shootview").hidden || !canvas.clientWidth) return;
-  const g = frameGeom();
-  sizeCanvas(g.ar);
-  const P = params(), ev = Math.pow(2, P.ev), scale = Math.max(fW, fH) / +$("size").value;
+  if (!progs || !running || video.readyState < 2 || !video.videoWidth || $("shootview").hidden) return;
+  if (!sizeCanvas()) return;
+  const g = geom(), P = params(), ev = Math.pow(2, P.ev), scale = Math.max(fW, fH) / +vals.size;
   const mirror = facing === "user" ? 1 : 0;
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, vTex);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-  const common = (pr) => { gl.uniform1i(pr.u.uV, 0); gl.uniform4fv(pr.u.uCrop, g.crop); gl.uniform1f(pr.u.uMirror, mirror); };
-  // 1. smear: somma per colonna delle luci oltre la saturazione
+  const common = (pr) => { gl.uniform1i(pr.u.uV, 0); gl.uniform4fv(pr.u.uCrop, g.crop); gl.uniform1f(pr.u.uMirror, mirror); gl.uniform1f(pr.u.uRot, rot); };
   let pr = progs.smear; gl.useProgram(pr.p); common(pr);
   gl.bindFramebuffer(gl.FRAMEBUFFER, smFbo); gl.viewport(0, 0, SMW, 1);
   gl.uniform2f(pr.u.uRes, SMW, 1); gl.uniform1f(pr.u.uEv, ev); gl.uniform1f(pr.u.uK, P.smear * 2.6);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
-  // 2. sviluppo
   pr = progs.develop; gl.useProgram(pr.p); common(pr);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, smTex); gl.uniform1i(pr.u.uSm, 1);
   gl.bindFramebuffer(gl.FRAMEBUFFER, aFbo); gl.viewport(0, 0, fW, fH);
@@ -918,19 +984,13 @@ function draw(now) {
   const U = { uEv: ev, uFlash: P.flash, uSoft: P.soft, uFocus: P.focus, uVig: P.vig, uDist: P.dist, uCa: P.ca, uNoise: P.noise, uChroma: P.chroma, uHl: P.hl, uSh: P.sh, uCt: P.ct, uSat: P.sat, uTemp: P.temp, uTint: P.tint, uT: now / 1000, uScale: scale };
   for (const k in U) if (pr.u[k]) gl.uniform1f(pr.u[k], U[k]);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
-  // 3. nitidezza e riduzione rumore, a schermo
   pr = progs.finish; gl.useProgram(pr.p);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, aTex); gl.uniform1i(pr.u.uA, 2);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, fW, fH);
   gl.uniform2f(pr.u.uRes, fW, fH); gl.uniform1f(pr.u.uSharp, P.sharp); gl.uniform1f(pr.u.uScale, scale);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   frames++;
-  if (now - fpsT > 1000) {
-    const fps = frames * 1000 / (now - fpsT);
-    if (fps < 22 && maxL > 600) maxL -= 150; // il telefono fatica: mirino più piccolo, scatto invariato
-    $("m-fps").textContent = Math.round(fps) + " fps · " + fW + " × " + fH; frames = 0; fpsT = now;
-  }
-  $("foot-l").textContent = (g.portrait ? "verticale" : "orizzontale") + " · " + $("size").selectedOptions[0].textContent + " · " + $("quality").selectedOptions[0].textContent.toLowerCase();
+  if (now - fpsT > 1000) { const fps = frames * 1000 / (now - fpsT); if (fps < 22 && maxL > 600) maxL -= 150; window.__fps = Math.round(fps); frames = 0; fpsT = now; }
 }
 requestAnimationFrame(draw);
 
@@ -940,20 +1000,17 @@ const LIN = new Float32Array(256);
 for (let i = 0; i < 256; i++) { const s = i / 255; LIN[i] = s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); }
 const ENC = new Uint8ClampedArray(4097);
 for (let i = 0; i <= 4096; i++) { const l = i / 4096; ENC[i] = 255 * (l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055) + 0.5; }
-const nextFrame = () => new Promise((res) => {
-  if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(() => res());
-  else setTimeout(res, 33);
-});
-let shooting = false;
+const nextFrame = () => new Promise((res) => { if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(() => res()); else setTimeout(res, 33); });
+let shooting = false, pending = {};
 async function shoot() {
   if (!running || shooting) return;
   shooting = true; $("shutter").disabled = true;
-  const P = params(), n = POSA[+inputs.posa.inp.value];
-  const g = frameGeom(), L = +$("size").value, S = L * 3 / 4;
-  const tw = g.portrait ? S : L, th = g.portrait ? L : S;
+  const P = params(), n = POSA[vals.posa];
+  const g = geom(), L = +vals.size, S = L * 3 / 4;
+  const [sx, sy, sw, sh] = g.src, landscape = sw > sh;
+  const tw = landscape ? L : S, th = landscape ? S : L;
   const cv = document.createElement("canvas"); cv.width = tw; cv.height = th;
   const cx = cv.getContext("2d", { willReadFrequently: true });
-  const sx = g.crop[0] * g.vw, sy = g.crop[1] * g.vh, sw = g.crop[2] * g.vw, sh = g.crop[3] * g.vh;
   if (facing === "user") { cx.translate(tw, 0); cx.scale(-1, 1); }
   $("blink").classList.add("is-on");
   const acc = n > 1 ? new Float32Array(tw * th * 3) : null;
@@ -967,103 +1024,69 @@ async function shoot() {
   setTimeout(() => $("blink").classList.remove("is-on"), 60);
   if (acc) {
     const k = 4096 / n;
-    for (let i = 0, j = 0; i < last.length; i += 4, j += 3) {
-      last[i] = ENC[Math.min(4096, acc[j] * k | 0)]; last[i + 1] = ENC[Math.min(4096, acc[j + 1] * k | 0)]; last[i + 2] = ENC[Math.min(4096, acc[j + 2] * k | 0)];
-    }
+    for (let i = 0, j = 0; i < last.length; i += 4, j += 3) { last[i] = ENC[Math.min(4096, acc[j] * k | 0)]; last[i + 1] = ENC[Math.min(4096, acc[j + 1] * k | 0)]; last[i + 2] = ENC[Math.min(4096, acc[j + 2] * k | 0)]; }
   }
   notice("registrazione", true);
-  const seed = (Math.random() * 1e9) | 0;
+  pending = { flash: P.flash > 0, quality: +vals.quality, exif: vals.exif === "1" };
   worker.postMessage({ type: "source", w: tw, h: th, data: last }, [last.buffer]);
-  worker.postMessage({ type: "render", p: P, seed });
-  worker._pending = { flash: P.flash > 0, n };
+  worker.postMessage({ type: "render", p: P, seed: (Math.random() * 1e9) | 0 });
 }
 worker.onmessage = (e) => {
-  const m = e.data, info = worker._pending || {};
-  if (m.type === "error") { notice("errore nello sviluppo"); log("errore: " + m.message); shooting = false; $("shutter").disabled = false; return; }
+  const m = e.data, info = pending;
+  if (m.type === "error") { notice("errore nello sviluppo"); shooting = false; $("shutter").disabled = false; return; }
   const cv = document.createElement("canvas"); cv.width = m.w; cv.height = m.h;
   cv.getContext("2d").putImageData(new ImageData(m.data, m.w, m.h), 0, 0);
   cv.toBlob(async (blob) => {
     let b = blob;
-    if ($("exif").checked) { try { b = await withExif(blob, m.w, m.h, info.flash); } catch (err) { log("exif non scritto"); } }
-    const name = fname();
-    counter++; try { localStorage.setItem("exm2-counter", String(counter)); } catch (er) {}
-    $("m-file").textContent = fname();
+    if (info.exif) { try { b = await withExif(blob, m.w, m.h, info.flash); } catch (err) {} }
+    const name = fname(); counter++; store.set("exm2-counter", String(counter));
     await addShot({ id: Date.now(), name, blob: b, w: m.w, h: m.h });
-    $("m-last").textContent = name + " · " + Math.round(b.size / 1024) + " KB";
-    log(name + " · posa 1/" + Math.round(30 / info.n) + " s · " + Math.round(m.ms) + " ms");
     notice(name + " nel rullino");
     shooting = false; $("shutter").disabled = !running;
-  }, "image/jpeg", +$("quality").value);
+  }, "image/jpeg", info.quality);
 };
 $("shutter").addEventListener("click", shoot);
-$("vf").addEventListener("click", (e) => { if (e.target.closest("button")) return; shoot(); });
+swipe($("stage"), () => setMode(modeIdx + 1), () => setMode(modeIdx - 1), () => { if (running) shoot(); });
 
-/* --- Rullino, salvato nel browser --- */
-let counter = 1;
-try { counter = +(localStorage.getItem("exm2-counter") || 1); } catch (e) {}
+/* --- Rullino --- */
+let counter = +store.get("exm2-counter", 1);
 const fname = () => "CIMG" + String(counter).padStart(4, "0") + ".JPG";
-$("m-file").textContent = fname();
-let db = null, shots = [];
-function idb() {
-  return new Promise((res) => {
-    try {
-      const r = indexedDB.open("exm2", 1);
-      r.onupgradeneeded = () => r.result.createObjectStore("shots", { keyPath: "id" });
-      r.onsuccess = () => res(r.result);
-      r.onerror = () => res(null);
-    } catch (e) { res(null); }
-  });
-}
-function tx(mode, fn) {
-  return new Promise((res) => {
-    if (!db) return res(null);
-    try { const t = db.transaction("shots", mode), st = t.objectStore("shots"); const r = fn(st); t.oncomplete = () => res(r && r.result); t.onerror = () => res(null); }
-    catch (e) { res(null); }
-  });
-}
-async function addShot(s) { shots.unshift(s); await tx("readwrite", (st) => st.put(s)); renderRoll(); }
-async function delShot(id) { shots = shots.filter((s) => s.id !== id); await tx("readwrite", (st) => st.delete(id)); renderRoll(); }
+let db = null, shots = [], shotIdx = 0;
+function idb() { return new Promise((res) => { try { const r = indexedDB.open("exm2", 1); r.onupgradeneeded = () => r.result.createObjectStore("shots", { keyPath: "id" }); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }); }
+function tx(mode, fn) { return new Promise((res) => { if (!db) return res(null); try { const t = db.transaction("shots", mode), st = t.objectStore("shots"); const r = fn(st); t.oncomplete = () => res(r && r.result); t.onerror = () => res(null); } catch (e) { res(null); } }); }
+async function addShot(s) { shots.unshift(s); shotIdx = 0; await tx("readwrite", (st) => st.put(s)); if (!$("rollview").hidden) showShot(0); }
 const urls = new Map();
 function urlOf(s) { if (!urls.has(s.id)) urls.set(s.id, URL.createObjectURL(s.blob)); return urls.get(s.id); }
-function renderRoll() {
-  const r = $("roll"); r.textContent = "";
-  $("roll-empty").hidden = shots.length > 0;
-  shots.forEach((s) => {
-    const b = document.createElement("button");
-    b.setAttribute("aria-label", "Apri " + s.name);
-    const im = document.createElement("img"); im.src = urlOf(s); im.alt = ""; im.loading = "lazy";
-    b.appendChild(im); b.addEventListener("click", () => openShot(s));
-    r.appendChild(b);
-  });
+function showShot(i) {
+  const n = shots.length;
+  $("vempty").hidden = n > 0; $("vimg").hidden = n === 0;
+  ["del", "save", "saveall"].forEach((id) => { $(id).disabled = n === 0; });
+  resetDel();
+  if (!n) { $("vmeta").textContent = ""; $("vcount").textContent = ""; $("vimg").removeAttribute("src"); return; }
+  shotIdx = (i + n) % n;
+  const s = shots[shotIdx];
+  $("vimg").src = urlOf(s); $("vimg").alt = s.name;
+  $("vmeta").textContent = s.name + " · " + s.w + " × " + s.h + " · " + Math.round(s.blob.size / 1024) + " KB";
+  $("vcount").textContent = (shotIdx + 1) + " / " + n;
 }
-let current = null;
-function openShot(s) {
-  current = s; $("detail").hidden = false; $("detail-img").src = urlOf(s);
-  $("detail-meta").textContent = s.name + " · " + s.w + " × " + s.h + " · " + Math.round(s.blob.size / 1024) + " KB";
-  window.scrollTo({ top: 0 });
-}
-$("d-close").addEventListener("click", () => { $("detail").hidden = true; current = null; });
-$("d-del").addEventListener("click", async () => { if (!current) return; const n = current.name; await delShot(current.id); $("detail").hidden = true; current = null; notice(n + " eliminata"); });
-$("d-save").addEventListener("click", async () => {
-  if (!current) return;
-  const file = new File([current.blob], current.name, { type: "image/jpeg" });
-  try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); notice("condivisa " + current.name); return; }
-  } catch (e) { if (e && e.name === "AbortError") return; }
-  const a = document.createElement("a"); a.href = urlOf(current); a.download = current.name; document.body.appendChild(a); a.click(); a.remove();
-  notice("scaricata " + current.name);
+swipe($("vstage"), () => showShot(shotIdx + 1), () => showShot(shotIdx - 1));
+let delArmed = false, delTimer = 0;
+function resetDel() { delArmed = false; clearTimeout(delTimer); $("del").textContent = "Elimina"; }
+$("del").addEventListener("click", async () => {
+  const s = shots[shotIdx]; if (!s) return;
+  if (!delArmed) { delArmed = true; $("del").textContent = "Conferma"; delTimer = setTimeout(resetDel, 3000); return; }
+  shots.splice(shotIdx, 1); await tx("readwrite", (st) => st.delete(s.id));
+  if (urls.has(s.id)) { URL.revokeObjectURL(urls.get(s.id)); urls.delete(s.id); }
+  notice(s.name + " eliminata"); showShot(Math.min(shotIdx, shots.length - 1));
 });
-function setMode(roll) {
-  $("mode").textContent = roll ? "rullino" : "mirino";
-  $("rollview").hidden = !roll; $("shootview").hidden = roll;
+async function share(list) {
+  const files = list.map((s) => new File([s.blob], s.name, { type: "image/jpeg" }));
+  try { if (navigator.canShare && navigator.canShare({ files })) { await navigator.share({ files }); return; } }
+  catch (e) { if (e && e.name === "AbortError") return; }
+  for (const s of list) { const a = document.createElement("a"); a.href = urlOf(s); a.download = s.name; document.body.appendChild(a); a.click(); a.remove(); }
 }
-$("mode").addEventListener("click", () => setMode($("rollview").hidden));
-(async () => {
-  db = await idb();
-  const all = await tx("readonly", (st) => st.getAll());
-  if (all) { shots = all.sort((a, b) => b.id - a.id); renderRoll(); }
-  if (!db) log("rullino solo in memoria: salva gli scatti prima di chiudere");
-})();
+$("save").addEventListener("click", () => { if (shots[shotIdx]) share([shots[shotIdx]]); });
+$("saveall").addEventListener("click", () => { if (shots.length) share(shots.slice()); });
 
 /* --- EXIF minimo della EX-M2 --- */
 async function withExif(blob, w, h, flash) {
@@ -1109,13 +1132,16 @@ async function withExif(blob, w, h, flash) {
 
 
 /* --- Avvio --- */
-let startPreset = "giorno";
-try { startPreset = localStorage.getItem("exm2-preset") || "giorno"; } catch (e) {}
-if (!PRESETS[startPreset]) startPreset = "giorno";
-$("preset").value = startPreset; applyPreset(startPreset);
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
-}
+$("mname").textContent = MODES[modeIdx][1]; $("midx").textContent = (modeIdx + 1) + " / " + MODES.length;
+renderItem(); refresh(); layout();
+(async () => {
+  db = await idb();
+  const all = await tx("readonly", (st) => st.getAll());
+  if (all) shots = all.sort((a, b) => b.id - a.id);
+  showShot(0);
+  try { const p = await navigator.permissions.query({ name: "camera" }); if (p.state === "granted") startCamera(); } catch (e) {}
+})();
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
 </html>
