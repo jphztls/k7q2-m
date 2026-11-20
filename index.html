@@ -740,7 +740,7 @@ document.addEventListener("dblclick", (e) => e.preventDefault());
 const BASE = {"ev": -6, "hl": 0, "sh": 75, "ct": 69, "sat": 98, "temp": -49, "tint": -87, "soft": 8, "focus": 0, "vig": 4, "dist": 26, "ca": 98, "bloom": 8, "haze": 32, "smear": 10, "noise": 15, "chroma": 37, "sharp": 84, "jpeg": 27, "mano": 61, "posa": 0, "gsh": 104, "gss": 42, "gsv": -2, "gmh": 19, "gms": 92, "gmv": 44, "ghh": 154, "ghs": 44, "ghv": 21, "dir": -1};
 
 /* --- Impostazioni della fotocamera (non dell'effetto) --- */
-const SET_DEF = { flash: "0", cam: "environment", exif: "0", size: "1600", theme: "dark", evAdj: 0, sound: "1", haptic: "1" };
+const SET_DEF = { flash: "0", cam: "environment", exif: "0", size: "1600", theme: "dark", evAdj: 0, sound: "1" };
 let vals = Object.assign({}, SET_DEF);
 try { const s = JSON.parse(store.get("exm2-set", "{}")); for (const k in SET_DEF) if (k in s) vals[k] = s[k]; } catch (e) {}
 const save = () => store.set("exm2-set", JSON.stringify(vals));
@@ -750,7 +750,6 @@ const MENU = [
   { k: "exif", l: "EXIF", opts: [["0", "OFF"], ["1", "ON"]] },
   { k: "size", l: "FORMATO", opts: [["1600", "1600"], ["1280", "1280"], ["640", "640"]] },
   { k: "sound", l: "SUONI", opts: [["1", "ON"], ["0", "OFF"]] },
-  { k: "haptic", l: "VIBRAZIONE", opts: [["1", "ON"], ["0", "OFF"]] },
 ];
 const optLabel = (d) => (d.opts.find((o) => o[0] === vals[d.k]) || d.opts[0])[1];
 
@@ -890,7 +889,7 @@ function drawPlayMenu() {
   PLAY_MENU.forEach((t, i) => { const y = 23 + i * 13, sel = i === S.playMenuIdx; if (sel) selBox(4, y - 2, OW - 8, 11); text(t, 7, y, { inv: sel }); });
 }
 
-/* --- Suono dei tasti e vibrazione --- */
+/* --- Suono dei tasti --- */
 let actx = null, noiseBuf = null;
 try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch (e) {} // rispetta l'interruttore silenzioso
 function audio() {
@@ -918,18 +917,7 @@ function clickSound(kind) {
   else if (kind === "soft") tick(t0, 2400, 0.012, 0.18, 4200);
   else tick(t0, 1800, 0.018, 0.28, 3200);
 }
-const hapticLabel = (() => { // iPhone: l'interruttore nativo vibra quando lo si attiva da un tocco
-  const i = document.createElement("input"); i.type = "checkbox"; i.setAttribute("switch", ""); i.id = "haptic-sw";
-  const l = document.createElement("label"); l.htmlFor = "haptic-sw";
-  const w = document.createElement("div"); w.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden"; w.append(i, l); document.body.appendChild(w);
-  return l;
-})();
-function haptic() {
-  if (vals.haptic !== "1") return;
-  if (navigator.vibrate) { try { navigator.vibrate(12); return; } catch (e) {} }
-  try { hapticLabel.click(); } catch (e) {}
-}
-document.addEventListener("click", (e) => { if (e.target.closest(".keys button, .keys .dpad, #lcd")) { if (vals.sound === "1") audio(); haptic(); } }, true);
+document.addEventListener("click", (e) => { if (vals.sound === "1" && e.target.closest(".keys button, .keys .dpad, #lcd")) audio(); }, true); // iOS sblocca l'audio solo dopo un tocco completo
 
 /* --- Tasti --- */
 function syncKeys() {
