@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EX-M2 mirino</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EX-M2">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<style>
+
+/* --- Token Grado Zero --- */
+:root {
+  --surface: #ffffff; --ink: #000000; --on-ink: #ffffff;
+  --line: var(--ink); --focus-ring: var(--ink); --surface-inverse: var(--ink); --ink-inverse: var(--on-ink);
+  --overlay: rgba(0,0,0,.6);
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: Menlo, "SF Mono", Consolas, "DejaVu Sans Mono", monospace;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --radius-none: 0; --radius-pill: 9999px; --border-hairline: 1px;
+  --control-height: 28px; --control-pad-x: 8px; --fader-cursor: 3px;
+  --toggle-w: 36px; --toggle-h: 20px; --toggle-knob: 14px;
+  --icon-s: 12px; --icon-m: 16px; --focus-offset: 2px;
+  --opacity-disabled: .4; --opacity-muted: .5;
+  color-scheme: light;
+}
+:root[data-theme="dark"] { --surface: #000000; --ink: #ffffff; --on-ink: #000000; --overlay: rgba(0,0,0,.75); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--surface); color: var(--ink); font: 400 16px/22px var(--font-sans); letter-spacing: 0; }
+h1, h2, h3, p { margin: 0; font-weight: 400; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* --- Componenti (dal bundle Grado Zero) --- */
+.gz-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); height: var(--control-height); min-width: var(--control-height); padding: 0 var(--control-pad-x); font: 400 16px/1 var(--font-sans); color: var(--ink-inverse); background: var(--surface-inverse); border: var(--border-hairline) solid var(--line); border-radius: 0; cursor: pointer; white-space: nowrap; }
+.gz-btn:hover { background: var(--surface); color: var(--ink); }
+.gz-btn:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.gz-btn:active { background: var(--surface); color: var(--ink); outline: var(--border-hairline) solid currentColor; outline-offset: -4px; }
+.gz-btn--secondary { background: var(--surface); color: var(--ink); }
+.gz-btn--secondary:hover, .gz-btn--secondary:active { background: var(--surface-inverse); color: var(--ink-inverse); }
+.gz-btn--ghost { background: transparent; color: var(--ink); border-color: transparent; }
+.gz-btn--ghost:hover, .gz-btn--ghost:active { border-color: var(--line); background: transparent; color: var(--ink); }
+.gz-btn[aria-pressed="true"] { background: var(--surface-inverse); color: var(--ink-inverse); border-color: var(--line); }
+.gz-btn[disabled] { opacity: var(--opacity-disabled); cursor: not-allowed; }
+
+.gz-field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.gz-field__label { font: 400 10px/14px var(--font-sans); }
+.gz-select { position: relative; display: block; }
+.gz-select select { width: 100%; height: var(--control-height); padding: 0 calc(var(--control-pad-x) + var(--icon-s) + var(--space-1)) 0 var(--control-pad-x); font: 400 16px/1 var(--font-sans); color: var(--ink); background: var(--surface); border: var(--border-hairline) solid var(--line); border-radius: 0; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.gz-select select:focus { outline: none; }
+.gz-select select:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.gz-select__chevron { position: absolute; top: 50%; right: var(--control-pad-x); width: var(--icon-s); height: var(--icon-s); margin-top: calc(var(--icon-s) / -2); pointer-events: none; display: block; }
+
+.gz-toggle { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); font: 400 16px/22px var(--font-sans); cursor: pointer; }
+.gz-toggle input { -webkit-appearance: none; appearance: none; position: relative; margin: 0; width: var(--toggle-w); height: var(--toggle-h); flex: none; background: var(--surface); border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); cursor: pointer; }
+.gz-toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: var(--toggle-knob); height: var(--toggle-knob); border-radius: var(--radius-pill); background: var(--ink); }
+.gz-toggle input:checked { background: var(--surface-inverse); }
+.gz-toggle input:checked::after { left: calc(var(--toggle-w) - var(--toggle-knob) - 4px); background: var(--ink-inverse); }
+.gz-toggle input:focus { outline: none; }
+.gz-toggle input:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.gz-toggle__text { display: flex; flex-direction: column; }
+.gz-toggle__help { font: italic 400 10px/14px var(--font-sans); }
+@media (prefers-reduced-motion: no-preference) { .gz-toggle input::after { transition: left 120ms ease-out; } }
+
+.gz-fader { display: grid; grid-template-columns: 12ch minmax(0, 1fr) 8ch; align-items: center; gap: var(--space-2); height: var(--control-height); padding: 0 var(--space-1); font: 400 16px/22px var(--font-sans); color: var(--ink); background: var(--surface); }
+.gz-fader__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gz-fader__value { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gz-fader__rail { position: relative; align-self: stretch; }
+.gz-fader input[type="range"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: ew-resize; }
+.gz-fader input[type="range"]:focus { outline: none; }
+.gz-fader input[type="range"]:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: 0; }
+.gz-fader input[type="range"]::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+.gz-fader input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: var(--fader-cursor); height: var(--control-height); background: var(--ink); border: 0; border-radius: 0; }
+.gz-fader input[type="range"]::-moz-range-track { height: 100%; background: transparent; }
+.gz-fader input[type="range"]::-moz-range-thumb { width: var(--fader-cursor); height: var(--control-height); background: var(--ink); border: 0; border-radius: 0; }
+.gz-fader.is-off .gz-fader__value { opacity: var(--opacity-muted); }
+
+.gz-grid-area { container-type: inline-size; }
+.gz-grid { display: grid; grid-template-columns: repeat(var(--gz-grid-cols, 3), minmax(0, 1fr)); }
+.gz-grid__col { min-width: 0; }
+@container (min-width: 761px) { .gz-grid__col + .gz-grid__col { margin-left: calc(-1 * var(--border-hairline)); } }
+@container (max-width: 760px) { .gz-grid { grid-template-columns: minmax(0, 1fr); } .gz-grid__col + .gz-grid__col .gz-grid__head { border-top: 0; } }
+.gz-grid__head, .gz-grid .gz-fader { border: var(--border-hairline) solid var(--line); border-top: 0; }
+.gz-grid__head { display: flex; align-items: center; justify-content: space-between; height: var(--control-height); padding: 0 var(--space-1); border-top: var(--border-hairline) solid var(--line); }
+.gz-grid__title { font: inherit; }
+.gz-grid__aside { font-style: italic; }
+
+.gz-term { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; font: 400 14px/20px var(--font-mono); color: var(--ink); }
+.gz-term__meta, .gz-term__log { opacity: var(--opacity-muted); }
+.gz-term__meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
+.gz-term__meta div { min-width: 0; }
+.gz-term__meta dt { font-style: italic; }
+.gz-term__meta dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.gz-term__log { display: flex; flex-direction: column; max-height: 120px; overflow: auto; }
+.gz-term__log:empty { display: none; }
+
+.gz-theme { display: inline-flex; align-items: center; justify-content: center; width: var(--control-height); height: var(--control-height); padding: 0; background: none; border: 0; color: var(--ink); font: 400 16px/1 var(--font-sans); cursor: pointer; }
+.gz-theme:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.gz-title { font: 400 16px/22px var(--font-sans); display: flex; align-items: center; }
+.gz-mode { margin: 0; padding: 0 var(--space-1); background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.gz-mode:hover { outline: var(--border-hairline) solid var(--line); outline-offset: 0; }
+.gz-mode:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+
+
+/* --- Pagina --- */
+.bar { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-4); height: 44px; padding: 0 var(--space-4); background: var(--surface); border-bottom: var(--border-hairline) solid var(--line); }
+.notice { text-align: center; text-transform: lowercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notice.is-busy, .breathe { animation: breathe 2s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .notice.is-busy, .breathe { animation: none; } }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: var(--space-5); padding: var(--space-4); max-width: 1400px; margin: 0 auto; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } }
+.col { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+
+.vf { position: relative; border: var(--border-hairline) solid var(--line); background: var(--surface); overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.vf canvas { display: block; width: 100%; height: auto; }
+.vf__off { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-4); text-align: center; background: var(--surface); }
+.vf__off p { max-width: 36ch; font: italic 400 10px/14px var(--font-sans); }
+.vf__off[hidden] { display: none; }
+.vf__blink { position: absolute; inset: 0; background: var(--ink); opacity: 0; pointer-events: none; }
+.vf__blink.is-on { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .vf__blink { transition: opacity 80ms ease-out; } .vf__blink.is-on { transition: opacity 0ms; } }
+.vf-foot { display: flex; justify-content: space-between; gap: var(--space-4); font: italic 400 10px/14px var(--font-sans); margin-top: calc(-1 * var(--space-3)); }
+
+.shoot { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-2); }
+.shoot .gz-btn { position: relative; }
+.shoot .gz-btn::after { content: ""; position: absolute; inset: -8px 0; } /* area di tocco da 44px */
+
+.roll { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.roll button { position: relative; display: block; padding: 0; margin: 0 -1px -1px 0; border: var(--border-hairline) solid var(--line); background: var(--surface); cursor: pointer; aspect-ratio: 1; overflow: hidden; }
+.roll button img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.roll button:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); z-index: 1; }
+.roll-empty { font: italic 400 16px/22px var(--font-sans); }
+.detail { display: flex; flex-direction: column; gap: var(--space-2); }
+.detail img { display: block; width: 100%; height: auto; border: var(--border-hairline) solid var(--line); }
+.detail[hidden], .rollview[hidden], .shootview[hidden] { display: none; }
+.label-s { font: 400 10px/14px var(--font-sans); }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <h1 class="gz-title">EX-M2&nbsp;<button class="gz-mode" id="mode" aria-label="Cambia vista: mirino o rullino">mirino</button></h1>
+  <p class="notice" id="notice" role="status" aria-live="polite"></p>
+  <button class="gz-theme" id="theme" aria-label="Cambia tema">●</button>
+</header>
+
+<main class="main">
+  <div class="col">
+    <section class="shootview col" id="shootview" aria-label="Mirino">
+      <div class="vf" id="vf">
+        <canvas id="gl" width="1200" height="900" aria-label="Mirino dal vivo con l'effetto applicato"></canvas>
+        <div class="vf__blink" id="blink"></div>
+        <div class="vf__off" id="off">
+          <button class="gz-btn" id="power">Accendi la fotocamera</button>
+          <p id="offmsg">Il mirino mostra già la resa della EX-M2. Tocca l'immagine o «Scatta» per fotografare.</p>
+        </div>
+      </div>
+      <p class="vf-foot"><span id="foot-l">—</span><span id="foot-r"></span></p>
+      <div class="shoot">
+        <button class="gz-btn" id="shutter" disabled>Scatta</button>
+        <button class="gz-btn gz-btn--secondary" id="flashbtn" aria-pressed="false">Flash</button>
+        <button class="gz-btn gz-btn--secondary" id="flip" aria-label="Cambia fotocamera, anteriore o posteriore">Gira</button>
+      </div>
+    </section>
+
+    <section class="rollview col" id="rollview" hidden aria-label="Rullino">
+      <div class="detail" id="detail" hidden>
+        <img id="detail-img" alt="Scatto selezionato">
+        <div class="row" style="justify-content: space-between">
+          <span class="label-s" id="detail-meta"></span>
+          <span class="row">
+            <button class="gz-btn gz-btn--ghost" id="d-close">Chiudi</button>
+            <button class="gz-btn gz-btn--secondary" id="d-del">Elimina</button>
+            <button class="gz-btn" id="d-save">Salva in Foto</button>
+          </span>
+        </div>
+      </div>
+      <div class="roll" id="roll"></div>
+      <p class="roll-empty" id="roll-empty">Nessuno scatto: torna al mirino e fotografa.</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <label class="gz-field">
+      <span class="gz-field__label">Scena</span>
+      <span class="gz-select">
+        <select id="preset">
+          <option value="giorno">Giorno</option>
+          <option value="interno">Interno, luce calda</option>
+          <option value="controluce">Controluce</option>
+          <option value="flash">Flash</option>
+          <option value="notte">Notte a mano libera</option>
+          <option value="mosso">Posa lunga</option>
+          <option value="pulito">Neutro</option>
+        </select>
+        <svg class="gz-select__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M2 4.5l4 4 4-4"/></svg>
+      </span>
+    </label>
+    <div class="pair">
+      <label class="gz-field">
+        <span class="gz-field__label">Dimensione</span>
+        <span class="gz-select">
+          <select id="size">
+            <option value="1600">1600 × 1200</option>
+            <option value="1280">1280 × 960</option>
+            <option value="640">640 × 480</option>
+          </select>
+          <svg class="gz-select__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M2 4.5l4 4 4-4"/></svg>
+        </span>
+      </label>
+      <label class="gz-field">
+        <span class="gz-field__label">Qualità</span>
+        <span class="gz-select">
+          <select id="quality">
+            <option value="0.84">Fine</option>
+            <option value="0.68" selected>Normale</option>
+            <option value="0.5">Economia</option>
+          </select>
+          <svg class="gz-select__chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M2 4.5l4 4 4-4"/></svg>
+        </span>
+      </label>
+    </div>
+    <label class="gz-toggle">
+      <span class="gz-toggle__text">Scrivi EXIF<span class="gz-toggle__help">Marca, modello, F3.2, 7,5 mm nel file salvato</span></span>
+      <input type="checkbox" role="switch" id="exif">
+    </label>
+    <div class="gz-grid-area"><div class="gz-grid" id="grid" style="--gz-grid-cols: 1"></div></div>
+    <div class="gz-term" aria-label="Dati">
+      <dl class="gz-term__meta">
+        <div><dt>prossimo file</dt><dd id="m-file">CIMG0001.JPG</dd></div>
+        <div><dt>ultimo scatto</dt><dd id="m-last">—</dd></div>
+        <div><dt>mirino</dt><dd id="m-fps">—</dd></div>
+        <div><dt>camera</dt><dd id="m-cam">—</dd></div>
+      </dl>
+      <div class="gz-term__log" id="log"></div>
+    </div>
+  </div>
+</main>
+
+<script type="text/worker" id="worker-src">
+
+"use strict";
+let W = 0, H = 0, SR, SG, SB;
+
+const LUT_IN = new Float32Array(256);
+for (let i = 0; i < 256; i++) {
+  const s = i / 255;
+  let l = s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  const ex = Math.max(0, s - 0.94) / 0.06;
+  l += ex * ex * 1.6;          // i bianchi pieni erano più luminosi della scena registrata
+  LUT_IN[i] = l;
+}
+const LUT_OUT = new Float32Array(4097);
+for (let i = 0; i <= 4096; i++) {
+  const l = i / 4096;
+  LUT_OUT[i] = l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055;
+}
+function enc(l) { return l <= 0 ? 0 : l >= 1 ? 1 : LUT_OUT[(l * 4096) | 0]; }
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function samp(a, x, y) {
+  if (x < 0) x = 0; else if (x > W - 1) x = W - 1;
+  if (y < 0) y = 0; else if (y > H - 1) y = H - 1;
+  const x0 = x | 0, y0 = y | 0;
+  const x1 = x0 < W - 1 ? x0 + 1 : x0, y1 = y0 < H - 1 ? y0 + 1 : y0;
+  const fx = x - x0, fy = y - y0;
+  const r0 = y0 * W, r1 = y1 * W;
+  return (a[r0 + x0] * (1 - fx) + a[r0 + x1] * fx) * (1 - fy) + (a[r1 + x0] * (1 - fx) + a[r1 + x1] * fx) * fy;
+}
+
+/* --- Sfocature --- */
+function boxH(s, d, r) {
+  const inv = 1 / (2 * r + 1), wm = W - 1;
+  for (let y = 0; y < H; y++) {
+    const row = y * W;
+    let acc = 0;
+    for (let k = -r; k <= r; k++) acc += s[row + (k < 0 ? 0 : k > wm ? wm : k)];
+    for (let x = 0; x < W; x++) {
+      d[row + x] = acc * inv;
+      const a = x + r + 1, b = x - r;
+      acc += s[row + (a > wm ? wm : a)] - s[row + (b < 0 ? 0 : b)];
+    }
+  }
+}
+function boxV(s, d, r) {
+  const inv = 1 / (2 * r + 1), hm = H - 1;
+  for (let x = 0; x < W; x++) {
+    let acc = 0;
+    for (let k = -r; k <= r; k++) acc += s[(k < 0 ? 0 : k > hm ? hm : k) * W + x];
+    for (let y = 0; y < H; y++) {
+      d[y * W + x] = acc * inv;
+      const a = y + r + 1, b = y - r;
+      acc += s[(a > hm ? hm : a) * W + x] - s[(b < 0 ? 0 : b) * W + x];
+    }
+  }
+}
+function boxesForGauss(sigma) {
+  const n = 3;
+  const wIdeal = Math.sqrt(12 * sigma * sigma / n + 1);
+  let wl = Math.floor(wIdeal); if (wl % 2 === 0) wl--;
+  const wu = wl + 2;
+  const m = Math.round((12 * sigma * sigma - n * wl * wl - 4 * n * wl - 3 * n) / (-4 * wl - 4));
+  const r = [];
+  for (let i = 0; i < n; i++) r.push(((i < m ? wl : wu) - 1) / 2);
+  return r;
+}
+function gauss(src, sigma) {
+  const N = W * H;
+  if (sigma < 0.25) return src.slice();
+  if (sigma < 0.8) {
+    const rad = Math.ceil(sigma * 3), k = [];
+    let sum = 0;
+    for (let i = -rad; i <= rad; i++) { const v = Math.exp(-i * i / (2 * sigma * sigma)); k.push(v); sum += v; }
+    for (let i = 0; i < k.length; i++) k[i] /= sum;
+    const t = new Float32Array(N), d = new Float32Array(N);
+    for (let y = 0; y < H; y++) {
+      const row = y * W;
+      for (let x = 0; x < W; x++) {
+        let a = 0;
+        for (let j = -rad; j <= rad; j++) { let xx = x + j; xx = xx < 0 ? 0 : xx >= W ? W - 1 : xx; a += src[row + xx] * k[j + rad]; }
+        t[row + x] = a;
+      }
+    }
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        let a = 0;
+        for (let j = -rad; j <= rad; j++) { let yy = y + j; yy = yy < 0 ? 0 : yy >= H ? H - 1 : yy; a += t[yy * W + x] * k[j + rad]; }
+        d[y * W + x] = a;
+      }
+    }
+    return d;
+  }
+  const rs = boxesForGauss(sigma);
+  let a = src.slice(), b = new Float32Array(N);
+  for (const r of rs) { if (r < 1) continue; boxH(a, b, r); boxV(b, a, r); }
+  return a;
+}
+
+/* --- Tremolio della mano: una traiettoria a passeggiata casuale, non una riga dritta --- */
+function shakeKernel(len, angDeg, rng) {
+  const steps = Math.max(3, Math.round(len * 2.5));
+  const pts = [];
+  let x = 0, y = 0, a = angDeg * Math.PI / 180, va = 0;
+  const step = len / steps;
+  for (let i = 0; i < steps; i++) {
+    const w = 0.4 + rng() * (i === 0 || i === steps - 1 ? 2.2 : 1);   // la mano indugia agli estremi
+    pts.push([x, y, w]);
+    va = va * 0.85 + (rng() - 0.5) * 0.9;
+    a += va * 0.35;
+    x += Math.cos(a) * step; y += Math.sin(a) * step;
+  }
+  let mx = 0, my = 0, sw = 0;
+  for (const p of pts) { mx += p[0] * p[2]; my += p[1] * p[2]; sw += p[2]; }
+  mx /= sw; my /= sw;
+  const map = new Map();
+  for (const [px, py, w] of pts) {
+    const fx = px - mx, fy = py - my, ix = Math.floor(fx), iy = Math.floor(fy), ax = fx - ix, ay = fy - iy;
+    const add = (dx, dy, v) => { const key = dx + "," + dy; map.set(key, (map.get(key) || 0) + v); };
+    add(ix, iy, w * (1 - ax) * (1 - ay)); add(ix + 1, iy, w * ax * (1 - ay));
+    add(ix, iy + 1, w * (1 - ax) * ay); add(ix + 1, iy + 1, w * ax * ay);
+  }
+  const taps = [];
+  let tot = 0;
+  for (const [k, v] of map) { if (v < 1e-4) continue; const [dx, dy] = k.split(",").map(Number); taps.push([dx, dy, v]); tot += v; }
+  for (const t of taps) t[2] /= tot;
+  return taps;
+}
+function convolve(src, taps) {
+  const d = new Float32Array(W * H);
+  for (const [dx, dy, w] of taps) {
+    for (let y = 0; y < H; y++) {
+      let sy = y + dy; sy = sy < 0 ? 0 : sy >= H ? H - 1 : sy;
+      const srow = sy * W, drow = y * W;
+      const x0 = Math.max(0, -dx), x1 = Math.min(W, W - dx);
+      for (let x = 0; x < x0; x++) d[drow + x] += w * src[srow];
+      for (let x = x0; x < x1; x++) d[drow + x] += w * src[srow + x + dx];
+      for (let x = x1; x < W; x++) d[drow + x] += w * src[srow + W - 1];
+    }
+  }
+  return d;
+}
+
+function render(p, seed) {
+  const N = W * H;
+  const rngShake = mulberry32(seed ^ 0x9E3779B9);
+  const rng = mulberry32(seed + 7);
+  const gn = () => (rng() + rng() + rng() - 1.5) * 2;
+  const cx = (W - 1) / 2, cy = (H - 1) / 2, n2 = 1 / (cx * cx + cy * cy);
+
+  /* 1. Obiettivo: distorsione a barilotto, aberrazione cromatica laterale, vignettatura */
+  let R = new Float32Array(N), G = new Float32Array(N), B = new Float32Array(N);
+  const k = p.dist * 0.09, kn = 1 / (1 + k), caS = p.ca * 0.0032, vg = p.vig * 0.85;
+  for (let y = 0; y < H; y++) {
+    const dy = y - cy;
+    for (let x = 0; x < W; x++) {
+      const dx = x - cx, r2 = (dx * dx + dy * dy) * n2;
+      const s = (1 + k * r2) * kn, i = y * W + x;
+      const vv = 1 + vg * r2, gain = 1 / (vv * vv);
+      const sr = s * (1 + caS), sb = s * (1 - caS);
+      R[i] = samp(SR, cx + dx * sr, cy + dy * sr) * gain;
+      G[i] = samp(SG, cx + dx * s, cy + dy * s) * gain;
+      B[i] = samp(SB, cx + dx * sb, cy + dy * sb) * gain;
+    }
+  }
+
+  /* 2. Morbidezza della lente, più forte ai bordi */
+  const s0 = 0.3 + p.soft * 0.75, s1 = s0 + p.soft * 1.7;
+  R = gauss(R, s0); G = gauss(G, s0); B = gauss(B, s0);
+  if (p.soft > 0.01) {
+    const ex = Math.sqrt(s1 * s1 - s0 * s0);
+    const chans = [R, G, B];
+    for (const c of chans) {
+      const bl = gauss(c, ex);
+      for (let y = 0; y < H; y++) {
+        const dy = y - cy;
+        for (let x = 0; x < W; x++) {
+          const dx = x - cx; let t = (dx * dx + dy * dy) * n2; t = t * t;
+          const i = y * W + x; c[i] += (bl[i] - c[i]) * t;
+        }
+      }
+    }
+  }
+
+  /* 3. Fuori fuoco (fuoco fisso da 1 m in poi) */
+  if (p.focus > 0.005) { const sg = p.focus * 11; R = gauss(R, sg); G = gauss(G, sg); B = gauss(B, sg); }
+
+  /* 4. Mosso */
+  if (p.shake > 0.005) {
+    const taps = shakeKernel(1 + p.shake * 38, p.dir, rngShake);
+    R = convolve(R, taps); G = convolve(G, taps); B = convolve(B, taps);
+  }
+
+  /* 5. Esposizione e flash a bordo */
+  const ev = Math.pow(2, p.ev), f = p.flash;
+  for (let y = 0; y < H; y++) {
+    const dy = y - cy;
+    for (let x = 0; x < W; x++) {
+      const dx = x - cx, r2 = (dx * dx + dy * dy) * n2, i = y * W + x;
+      let g = ev;
+      if (f > 0) g *= 1 + f * (2.4 * Math.exp(-r2 / 0.16) - 0.6);
+      R[i] *= g * (1 - 0.05 * f); G[i] *= g; B[i] *= g * (1 + 0.07 * f);
+    }
+  }
+
+  /* 6. CCD: smear verticale, bloom e frange viola attorno alle luci sature */
+  const E = new Float32Array(N);
+  let anyE = false;
+  for (let i = 0; i < N; i++) {
+    const L = 0.2126 * R[i] + 0.7152 * G[i] + 0.0722 * B[i];
+    const e = L - 2.5; if (e > 0) { E[i] = e; anyE = true; }
+  }
+  if (anyE && (p.smear > 0.005 || p.ca > 0.005)) {
+    const col = new Float32Array(W);
+    for (let y = 0; y < H; y++) { const row = y * W; for (let x = 0; x < W; x++) col[x] += E[row + x]; }
+    const ks = p.smear * 2.6 / H;
+    for (let x = 0; x < W; x++) col[x] *= ks;
+    const bl = p.smear > 0.005 ? gauss(E, 3 + p.smear * 5) : null;
+    const kb = p.smear * 0.5;
+    let fr = null;
+    if (p.ca > 0.005) {
+      const M = new Float32Array(N);
+      for (let i = 0; i < N; i++) M[i] = E[i] > 0 ? 1 : 0;
+      fr = gauss(M, 1.5 + p.ca * 3);
+      for (let i = 0; i < N; i++) { const v = fr[i] - M[i]; fr[i] = v > 0 ? v * p.ca * 0.22 : 0; }
+    }
+    for (let y = 0; y < H; y++) {
+      const row = y * W;
+      for (let x = 0; x < W; x++) {
+        const i = row + x, sm = col[x], b = bl ? bl[i] * kb : 0, q = fr ? fr[i] : 0;
+        R[i] += sm * 1.02 + b + q * 0.6;
+        G[i] += sm * 0.96 + b + q * 0.04;
+        B[i] += sm * 1.05 + b + q * 0.95;
+      }
+    }
+  }
+
+  /* 7. Rumore del sensore: fotonico, di lettura, cromatico a macchie, bande orizzontali */
+  const ns = p.noise, cs = p.chroma;
+  if (ns > 0.002 || cs > 0.002) {
+    const fw = Math.ceil(W / 3) + 2, fh = Math.ceil(H / 3) + 2;
+    const C1 = new Float32Array(fw * fh), C2 = new Float32Array(fw * fh);
+    for (let i = 0; i < C1.length; i++) { C1[i] = gn(); C2[i] = gn(); }
+    const rows = new Float32Array(H);
+    for (let y = 0; y < H; y++) rows[y] = gn() * ns * 0.0025;
+    for (let y = 0; y < H; y++) {
+      const fy = y / 3, y0 = fy | 0, ay = fy - y0;
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        const L = (R[i] + G[i] + B[i]) / 3, sq = Math.sqrt(L > 0 ? L : 0);
+        const sd = ns * (0.009 + 0.05 * sq);
+        const nl = gn() * sd + rows[y];
+        R[i] += nl + gn() * sd * 0.6;
+        G[i] += nl + gn() * sd * 0.45;
+        B[i] += nl + gn() * sd * 0.75;
+        if (cs > 0.002) {
+          const fx = x / 3, x0 = fx | 0, ax = fx - x0, j = y0 * fw + x0;
+          const c1 = (C1[j] * (1 - ax) + C1[j + 1] * ax) * (1 - ay) + (C1[j + fw] * (1 - ax) + C1[j + fw + 1] * ax) * ay;
+          const c2 = (C2[j] * (1 - ax) + C2[j + 1] * ax) * (1 - ay) + (C2[j + fw] * (1 - ax) + C2[j + fw + 1] * ax) * ay;
+          const ca = cs * (0.006 + 0.032 * sq);
+          R[i] += c1 * ca; B[i] += c2 * ca; G[i] -= (c1 + c2) * 0.45 * ca;
+        }
+      }
+    }
+  }
+
+  /* 8. Spalla delle alte luci, taglio per canale (le alte luci virano), bilanciamento del bianco */
+  const hl = 1 + p.hl * 1.6;
+  const wr = 1 + 0.22 * p.temp - 0.04 * p.tint, wg = 1 + 0.08 * p.tint, wb = 1 - 0.22 * p.temp - 0.04 * p.tint;
+  const ct = p.ct, bk = p.sh * 0.13, bki = 1 / (1 - bk), sat = p.sat;
+  const Y = new Float32Array(N); let Cb = new Float32Array(N), Cr = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let r = R[i], g = G[i], b = B[i];
+    if (r > 0.5) r = 0.5 + (r - 0.5) * hl; if (g > 0.5) g = 0.5 + (g - 0.5) * hl; if (b > 0.5) b = 0.5 + (b - 0.5) * hl;
+    r = r < 0 ? 0 : r > 1 ? 1 : r; g = g < 0 ? 0 : g > 1 ? 1 : g; b = b < 0 ? 0 : b > 1 ? 1 : b;
+    r *= wr; g *= wg; b *= wb;
+    /* 9. Curva della fotocamera: gamma, contrasto a S, neri chiusi */
+    r = enc(r); g = enc(g); b = enc(b);
+    r += (r * r * (3 - 2 * r) - r) * ct; g += (g * g * (3 - 2 * g) - g) * ct; b += (b * b * (3 - 2 * b) - b) * ct;
+    r = (r - bk) * bki; g = (g - bk) * bki; b = (b - bk) * bki;
+    r = r < 0 ? 0 : r; g = g < 0 ? 0 : g; b = b < 0 ? 0 : b;
+    /* 10. Colore CCD: saturazione, rossi un po' spinti */
+    const yy = 0.299 * r + 0.587 * g + 0.114 * b;
+    r = yy + (r - yy) * sat * 1.06; g = yy + (g - yy) * sat * 0.97; b = yy + (b - yy) * sat * 1.03;
+    const y2 = 0.299 * r + 0.587 * g + 0.114 * b;
+    Y[i] = y2; Cb[i] = b - y2; Cr[i] = r - y2;
+  }
+
+  /* 11. Elaborazione in camera: riduzione rumore sulla crominanza, nitidezza con aloni */
+  const ss = 0.5 + ns * 1.3;
+  Cb = gauss(Cb, ss); Cr = gauss(Cr, ss);
+  if (p.sharp > 0.005) {
+    const Yb = gauss(Y, 1.35), a = p.sharp * 2.3;
+    for (let i = 0; i < N; i++) { let d = Y[i] - Yb[i]; d = d > 0.22 ? 0.22 : d < -0.22 ? -0.22 : d; Y[i] += d * a; }
+  }
+  const out = new Uint8ClampedArray(N * 4);
+  for (let i = 0; i < N; i++) {
+    const r = Y[i] + Cr[i], b = Y[i] + Cb[i], g = (Y[i] - 0.299 * r - 0.114 * b) / 0.587;
+    const o = i * 4;
+    out[o] = r * 255 + 0.5; out[o + 1] = g * 255 + 0.5; out[o + 2] = b * 255 + 0.5; out[o + 3] = 255;
+  }
+  return out;
+}
+
+onmessage = (e) => {
+  const m = e.data;
+  if (m.type === "source") {
+    W = m.w; H = m.h;
+    const d = m.data, N = W * H;
+    SR = new Float32Array(N); SG = new Float32Array(N); SB = new Float32Array(N);
+    for (let i = 0; i < N; i++) { SR[i] = LUT_IN[d[i * 4]]; SG[i] = LUT_IN[d[i * 4 + 1]]; SB[i] = LUT_IN[d[i * 4 + 2]]; }
+  } else if (m.type === "render") {
+    const t = performance.now();
+    try {
+      const out = render(m.p, m.seed);
+      postMessage({ type: "done", id: m.id, w: W, h: H, data: out, ms: performance.now() - t }, [out.buffer]);
+    } catch (err) {
+      postMessage({ type: "error", id: m.id, message: String(err && err.message || err) });
+    }
+  }
+};
+
+</script>
+
+<script id="glsl-common" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform sampler2D uV;
+uniform vec4 uCrop;
+uniform float uMirror;
+vec3 srcLin(vec2 uv) {
+  vec2 q = vec2(uv.x, 1.0 - uv.y);
+  if (uMirror > 0.5) q.x = 1.0 - q.x;
+  q = uCrop.xy + clamp(q, 0.0, 1.0) * uCrop.zw;
+  vec3 s = texture(uV, q).rgb;
+  vec3 l = mix(s / 12.92, pow((s + 0.055) / 1.055, vec3(2.4)), step(0.04045, s));
+  vec3 ex = max(vec3(0.0), s - 0.94) / 0.06;
+  return l + ex * ex * 1.6;
+}
+float h12(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float gn(vec2 p) { return (h12(p) + h12(p + 17.31) + h12(p + 41.73) - 1.5) * 2.0; }
+</script>
+
+<script id="glsl-smear" type="x-shader/x-fragment">
+uniform vec2 uRes;
+uniform float uEv, uK;
+out vec4 o;
+void main() {
+  float x = gl_FragCoord.x / uRes.x, s = 0.0;
+  for (int i = 0; i < 64; i++) {
+    vec3 c = srcLin(vec2(x, (float(i) + 0.5) / 64.0)) * uEv;
+    s += max(0.0, dot(c, vec3(0.2126, 0.7152, 0.0722)) - 2.5);
+  }
+  o = vec4(vec3(clamp(s / 64.0 * uK / 4.0, 0.0, 1.0)), 1.0);
+}
+</script>
+
+<script id="glsl-develop" type="x-shader/x-fragment">
+uniform vec2 uRes;
+uniform sampler2D uSm;
+uniform float uEv, uFlash, uSoft, uFocus, uVig, uDist, uCa, uNoise, uChroma, uHl, uSh, uCt, uSat, uTemp, uTint, uT, uScale;
+out vec4 o;
+const vec2 D[8] = vec2[8](vec2(1.0, 0.0), vec2(0.7071, 0.7071), vec2(0.0, 1.0), vec2(-0.7071, 0.7071), vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071));
+float vnoise(vec2 p, float seed) {
+  vec2 i = floor(p), f = fract(p);
+  float a = gn(i + seed), b = gn(i + vec2(1.0, 0.0) + seed), c = gn(i + vec2(0.0, 1.0) + seed), d = gn(i + vec2(1.0, 1.0) + seed);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+mat2 rot;
+float chan(vec2 uv, float rad, int ch) {
+  if (rad < 0.6) return srcLin(uv)[ch];
+  vec2 px = rad / uRes;
+  float s = srcLin(uv)[ch] * 0.04;
+  for (int i = 0; i < 8; i++) {
+    vec2 d = rot * D[i];
+    s += srcLin(uv + d * px * 0.42)[ch] * 0.06;
+    s += srcLin(uv + (rot * D[(i + 1) % 8] * 0.5 + d * 0.5) * px * 0.92)[ch] * 0.06;
+  }
+  return s;
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float asp = uRes.x / uRes.y;
+  vec2 d = uv - 0.5;
+  vec2 dn = d * vec2(asp, 1.0);
+  float r2 = dot(dn, dn) / ((asp * asp + 1.0) * 0.25);
+  float k = uDist * 0.09, s = (1.0 + k * r2) / (1.0 + k), cs = uCa * 0.0032;
+  float a = h12(gl_FragCoord.xy) * 6.2832;
+  rot = mat2(cos(a), sin(a), -sin(a), cos(a));
+  float rad = (0.3 + uSoft * 0.75 + uSoft * 1.7 * r2 * r2 + uFocus * 11.0) * 1.6 * uScale;
+  vec3 c = vec3(chan(0.5 + d * s * (1.0 + cs), rad, 0), chan(0.5 + d * s, rad, 1), chan(0.5 + d * s * (1.0 - cs), rad, 2));
+  float vv = 1.0 + uVig * 0.85 * r2; c /= vv * vv;
+  float g = uEv;
+  if (uFlash > 0.0) g *= 1.0 + uFlash * (2.4 * exp(-r2 / 0.16) - 0.6);
+  c *= g * vec3(1.0 - 0.05 * uFlash, 1.0, 1.0 + 0.07 * uFlash);
+  c += texture(uSm, vec2(uv.x, 0.5)).r * 4.0 * vec3(1.02, 0.96, 1.05);
+  float t = floor(uT * 30.0);
+  float L = (c.r + c.g + c.b) / 3.0, sq = sqrt(max(L, 0.0));
+  float sd = uNoise * (0.009 + 0.05 * sq) * min(1.0, uScale * 1.15);
+  vec2 fp = gl_FragCoord.xy + vec2(mod(t * 37.0, 997.0), mod(t * 61.0, 991.0));
+  float nl = gn(fp) * sd;
+  c += nl + vec3(gn(fp + 3.1) * 0.6, gn(fp + 5.3) * 0.45, gn(fp + 7.9) * 0.75) * sd;
+  vec2 cp = gl_FragCoord.xy / (3.0 * uScale);
+  float c1 = vnoise(cp, mod(t * 13.0, 500.0)), c2 = vnoise(cp, mod(t * 29.0, 500.0) + 600.0);
+  float ca = uChroma * (0.006 + 0.032 * sq);
+  c.r += c1 * ca; c.b += c2 * ca; c.g -= (c1 + c2) * 0.45 * ca;
+  float hl = 1.0 + uHl * 1.6;
+  c = mix(c, 0.5 + (c - 0.5) * hl, step(0.5, c));
+  c = clamp(c, 0.0, 1.0);
+  c *= vec3(1.0 + 0.22 * uTemp - 0.04 * uTint, 1.0 + 0.08 * uTint, 1.0 - 0.22 * uTemp - 0.04 * uTint);
+  c = clamp(c, 0.0, 1.0);
+  c = mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+  c += (c * c * (3.0 - 2.0 * c) - c) * uCt;
+  float bk = uSh * 0.13; c = max((c - bk) / (1.0 - bk), 0.0);
+  float yy = dot(c, vec3(0.299, 0.587, 0.114));
+  c = yy + (c - yy) * uSat * vec3(1.06, 0.97, 1.03);
+  o = vec4(clamp(c, 0.0, 1.0), 1.0);
+}
+</script>
+
+<script id="glsl-finish" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform sampler2D uA;
+uniform vec2 uRes;
+uniform float uSharp, uScale;
+out vec4 o;
+const vec3 LW = vec3(0.299, 0.587, 0.114);
+vec3 at(vec2 off) { return texture(uA, (gl_FragCoord.xy + off) / uRes).rgb; }
+void main() {
+  vec3 c = at(vec2(0.0));
+  float r = max(0.75, 1.35 * uScale);
+  vec3 acc = vec3(0.0);
+  acc += at(vec2(r, 0.0)); acc += at(vec2(-r, 0.0)); acc += at(vec2(0.0, r)); acc += at(vec2(0.0, -r));
+  float q = r * 0.7071;
+  acc += at(vec2(q, q)); acc += at(vec2(-q, q)); acc += at(vec2(q, -q)); acc += at(vec2(-q, -q));
+  acc /= 8.0;
+  float Y = dot(c, LW), Yb = 0.3 * Y + 0.7 * dot(acc, LW);
+  vec3 chroma = mix(c - Y, acc - dot(acc, LW), 0.55);
+  Y += clamp(Y - Yb, -0.22, 0.22) * uSharp * 2.3;
+  o = vec4(clamp(Y + chroma, 0.0, 1.0), 1.0);
+}
+</script>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+/* --- Tema --- */
+(function () {
+  let t = null;
+  try { t = localStorage.getItem("exm2-theme"); } catch (e) {}
+  if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const apply = (n) => { document.documentElement.dataset.theme = n; document.querySelector('meta[name="theme-color"]').content = n === "dark" ? "#000000" : "#ffffff"; };
+  apply(t);
+  $("theme").addEventListener("click", () => {
+    const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    apply(n);
+    try { localStorage.setItem("exm2-theme", n); } catch (e) {}
+  });
+})();
+
+let noticeTimer = 0;
+function notice(text, busy) {
+  const el = $("notice");
+  clearTimeout(noticeTimer);
+  el.textContent = text;
+  el.classList.toggle("is-busy", !!busy);
+  if (!busy && text) noticeTimer = setTimeout(() => { el.textContent = ""; }, 3200);
+}
+function log(text) {
+  const el = $("log"), d = document.createElement("div");
+  d.textContent = text; el.appendChild(d);
+  while (el.children.length > 30) el.firstChild.remove();
+  el.scrollTop = el.scrollHeight;
+}
+
+/* --- Regolazioni --- */
+const POSA = [1, 2, 3, 4, 6, 8, 10];
+const DEFS = [
+  { k: "ev", l: "Esposizione", min: -20, max: 20, f: (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v / 10).toFixed(1).replace(".", ",") + " EV" },
+  { k: "posa", l: "Posa", min: 0, max: POSA.length - 1, f: (v) => "1/" + Math.round(30 / POSA[v]) + " s", keep: true },
+  { k: "hl", l: "Alte luci" },
+  { k: "sh", l: "Ombre" },
+  { k: "ct", l: "Contrasto" },
+  { k: "sat", l: "Saturazione", max: 200 },
+  { k: "temp", l: "Temperatura", min: -100, max: 100, f: (v) => (v > 0 ? "calda " : v < 0 ? "fredda " : "") + Math.abs(v), keep: true },
+  { k: "tint", l: "Tinta", min: -100, max: 100, f: (v) => (v > 0 ? "verde " : v < 0 ? "magenta " : "") + Math.abs(v), keep: true },
+  { k: "flash", l: "Flash", f: (v) => v ? String(v) : "spento" },
+  { k: "soft", l: "Morbidezza" },
+  { k: "focus", l: "Fuori fuoco" },
+  { k: "vig", l: "Vignettatura" },
+  { k: "dist", l: "Distorsione" },
+  { k: "ca", l: "Aberrazione" },
+  { k: "smear", l: "Smear CCD" },
+  { k: "noise", l: "Rumore" },
+  { k: "chroma", l: "Rumore crom." },
+  { k: "sharp", l: "Nitidezza" },
+];
+const PRESETS = {
+  giorno:     { ev: 0,   posa: 0, hl: 55, sh: 22, ct: 45, sat: 125, temp: -14, tint: 6,  flash: 0,  soft: 40, focus: 0,  vig: 32, dist: 25, ca: 35, smear: 45, noise: 18, chroma: 28, sharp: 55 },
+  interno:    { ev: -3,  posa: 3, hl: 50, sh: 28, ct: 38, sat: 112, temp: 48,  tint: -4, flash: 0,  soft: 45, focus: 4,  vig: 38, dist: 25, ca: 30, smear: 45, noise: 55, chroma: 62, sharp: 50 },
+  controluce: { ev: 7,   posa: 0, hl: 90, sh: 35, ct: 50, sat: 118, temp: -20, tint: 4,  flash: 0,  soft: 42, focus: 0,  vig: 34, dist: 25, ca: 60, smear: 75, noise: 22, chroma: 30, sharp: 55 },
+  flash:      { ev: -4,  posa: 0, hl: 72, sh: 38, ct: 50, sat: 115, temp: -26, tint: 8,  flash: 70, soft: 40, focus: 0,  vig: 30, dist: 25, ca: 35, smear: 40, noise: 32, chroma: 40, sharp: 58 },
+  notte:      { ev: -12, posa: 5, hl: 70, sh: 42, ct: 55, sat: 105, temp: 32,  tint: -2, flash: 0,  soft: 48, focus: 10, vig: 40, dist: 25, ca: 40, smear: 85, noise: 85, chroma: 88, sharp: 45 },
+  mosso:      { ev: 0,   posa: 6, hl: 55, sh: 24, ct: 45, sat: 120, temp: -10, tint: 5,  flash: 0,  soft: 42, focus: 6,  vig: 32, dist: 25, ca: 35, smear: 45, noise: 25, chroma: 34, sharp: 52 },
+  pulito:     { ev: 0,   posa: 0, hl: 0,  sh: 0,  ct: 0,  sat: 100, temp: 0,   tint: 0,  flash: 0,  soft: 0,  focus: 0,  vig: 0,  dist: 0,  ca: 0,  smear: 0,  noise: 0,  chroma: 0,  sharp: 0  },
+};
+const inputs = {};
+(function buildGrid() {
+  const grid = $("grid");
+  const col = document.createElement("div"); col.className = "gz-grid__col";
+  col.innerHTML = '<div class="gz-grid__head"><h2 class="gz-grid__title">Regolazioni</h2><span class="gz-grid__aside">doppio tocco: valore della scena</span></div>';
+  DEFS.forEach((d) => {
+    const id = "f-" + d.k;
+    const row = document.createElement("div"); row.className = "gz-fader";
+    row.innerHTML = '<label class="gz-fader__label" for="' + id + '"></label><div class="gz-fader__rail"><input type="range" id="' + id + '"></div><span class="gz-fader__value"></span>';
+    row.querySelector("label").textContent = d.l;
+    const inp = row.querySelector("input");
+    inp.min = d.min ?? 0; inp.max = d.max ?? 100; inp.step = 1;
+    const val = row.querySelector(".gz-fader__value");
+    const upd = () => {
+      const v = +inp.value;
+      val.textContent = d.f ? d.f(v) : String(v);
+      row.classList.toggle("is-off", v === 0 && d.k !== "ev" && !d.keep);
+      if (d.k === "flash") $("flashbtn").setAttribute("aria-pressed", v > 0 ? "true" : "false");
+      if (d.k === "posa") $("foot-r").textContent = "posa " + val.textContent;
+    };
+    inp.addEventListener("input", upd);
+    inp.addEventListener("dblclick", () => { inp.value = PRESETS[$("preset").value][d.k]; upd(); });
+    inputs[d.k] = { inp, upd };
+    col.appendChild(row);
+  });
+  grid.appendChild(col);
+})();
+function applyPreset(name) { const p = PRESETS[name]; for (const k in p) if (inputs[k]) { inputs[k].inp.value = p[k]; inputs[k].upd(); } }
+function params() {
+  const v = (k) => +inputs[k].inp.value;
+  return {
+    ev: v("ev") / 10, hl: v("hl") / 100, sh: v("sh") / 100, ct: v("ct") / 100, sat: v("sat") / 100,
+    temp: v("temp") / 100, tint: v("tint") / 100, flash: v("flash") / 100,
+    soft: v("soft") / 100, focus: v("focus") / 100, vig: v("vig") / 100, dist: v("dist") / 100, ca: v("ca") / 100, smear: v("smear") / 100,
+    shake: 0, dir: 0, noise: v("noise") / 100, chroma: v("chroma") / 100, sharp: v("sharp") / 100,
+  };
+}
+$("preset").addEventListener("change", (e) => { applyPreset(e.target.value); notice("scena: " + e.target.selectedOptions[0].textContent); try { localStorage.setItem("exm2-preset", e.target.value); } catch (er) {} });
+let lastFlash = 70;
+$("flashbtn").addEventListener("click", () => {
+  const f = inputs.flash;
+  if (+f.inp.value > 0) { lastFlash = +f.inp.value; f.inp.value = 0; } else f.inp.value = lastFlash || 70;
+  f.upd(); notice(+f.inp.value > 0 ? "flash acceso" : "flash spento");
+});
+
+/* --- Fotocamera --- */
+const video = document.createElement("video");
+video.setAttribute("playsinline", ""); video.muted = true; video.autoplay = true;
+let stream = null, facing = "environment", running = false;
+async function startCamera() {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $("offmsg").textContent = "Qui la fotocamera non è disponibile: apri la pagina da un indirizzo https o dall'icona sulla schermata Home.";
+    return;
+  }
+  try {
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1440 }, aspectRatio: { ideal: 4 / 3 } } });
+    video.srcObject = stream;
+    await video.play();
+    const s = stream.getVideoTracks()[0].getSettings();
+    $("m-cam").textContent = (facing === "user" ? "anteriore" : "posteriore") + " · " + (s.width || video.videoWidth) + " × " + (s.height || video.videoHeight);
+    $("off").hidden = true; $("shutter").disabled = false; running = true;
+    log("fotocamera accesa");
+  } catch (e) {
+    const n = e && e.name;
+    $("offmsg").textContent = n === "NotAllowedError" ? "Accesso alla fotocamera negato: consentilo nelle impostazioni del browser e riprova." : "Non riesco ad accendere la fotocamera (" + (n || "errore") + ").";
+    $("off").hidden = false;
+  }
+}
+$("power").addEventListener("click", startCamera);
+$("flip").addEventListener("click", () => { facing = facing === "environment" ? "user" : "environment"; if (running) startCamera(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && running && stream && stream.getVideoTracks()[0].readyState === "ended") startCamera(); });
+
+/* --- Mirino WebGL --- */
+const canvas = $("gl");
+const gl = canvas.getContext("webgl2", { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false });
+let progs = null;
+function compile(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(fsrc) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, "#version 300 es\nin vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }"));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fsrc));
+  gl.bindAttribLocation(p, 0, "p");
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = {}, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name.replace(/\[0\]$/, "")] = gl.getUniformLocation(p, a.name); }
+  return { p, u };
+}
+function tex(w, h) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  if (w) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  return t;
+}
+function fbo(t) { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); return f; }
+let vTex, smTex, smFbo, aTex, aFbo, fW = 0, fH = 0;
+const SMW = 256;
+if (gl) {
+  try {
+    const common = $("glsl-common").textContent;
+    progs = { smear: program(common + $("glsl-smear").textContent), develop: program(common + $("glsl-develop").textContent), finish: program($("glsl-finish").textContent) };
+    const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    vTex = tex(); smTex = tex(SMW, 1); smFbo = fbo(smTex);
+  } catch (e) { progs = null; log("errore shader: " + e.message); }
+}
+if (!progs) $("offmsg").textContent = "Questo browser non ha WebGL 2: il mirino non può funzionare.";
+
+function frameGeom() {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const portrait = vh > vw, ar = portrait ? 3 / 4 : 4 / 3;
+  let cw = 1, ch = 1;
+  if (vw / vh > ar) cw = (vh * ar) / vw; else ch = (vw / ar) / vh;
+  return { vw, vh, portrait, ar, crop: [(1 - cw) / 2, (1 - ch) / 2, cw, ch] };
+}
+function sizeCanvas(ar) {
+  const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  let w = Math.round(cssW * dpr), h = Math.round(w / ar);
+  const L = Math.max(w, h);
+  if (L > maxL) { const k = maxL / L; w = Math.round(w * k); h = Math.round(h * k); }
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  if (fW !== w || fH !== h) {
+    if (aTex) { gl.deleteTexture(aTex); gl.deleteFramebuffer(aFbo); }
+    aTex = tex(w, h); aFbo = fbo(aTex); fW = w; fH = h;
+  }
+}
+let frames = 0, fpsT = performance.now(), maxL = 1200;
+function draw(now) {
+  requestAnimationFrame(draw);
+  if (!progs || !running || video.readyState < 2 || !video.videoWidth || $("shootview").hidden || !canvas.clientWidth) return;
+  const g = frameGeom();
+  sizeCanvas(g.ar);
+  const P = params(), ev = Math.pow(2, P.ev), scale = Math.max(fW, fH) / +$("size").value;
+  const mirror = facing === "user" ? 1 : 0;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, vTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+  const common = (pr) => { gl.uniform1i(pr.u.uV, 0); gl.uniform4fv(pr.u.uCrop, g.crop); gl.uniform1f(pr.u.uMirror, mirror); };
+  // 1. smear: somma per colonna delle luci oltre la saturazione
+  let pr = progs.smear; gl.useProgram(pr.p); common(pr);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, smFbo); gl.viewport(0, 0, SMW, 1);
+  gl.uniform2f(pr.u.uRes, SMW, 1); gl.uniform1f(pr.u.uEv, ev); gl.uniform1f(pr.u.uK, P.smear * 2.6);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  // 2. sviluppo
+  pr = progs.develop; gl.useProgram(pr.p); common(pr);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, smTex); gl.uniform1i(pr.u.uSm, 1);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, aFbo); gl.viewport(0, 0, fW, fH);
+  gl.uniform2f(pr.u.uRes, fW, fH);
+  const U = { uEv: ev, uFlash: P.flash, uSoft: P.soft, uFocus: P.focus, uVig: P.vig, uDist: P.dist, uCa: P.ca, uNoise: P.noise, uChroma: P.chroma, uHl: P.hl, uSh: P.sh, uCt: P.ct, uSat: P.sat, uTemp: P.temp, uTint: P.tint, uT: now / 1000, uScale: scale };
+  for (const k in U) if (pr.u[k]) gl.uniform1f(pr.u[k], U[k]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  // 3. nitidezza e riduzione rumore, a schermo
+  pr = progs.finish; gl.useProgram(pr.p);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, aTex); gl.uniform1i(pr.u.uA, 2);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, fW, fH);
+  gl.uniform2f(pr.u.uRes, fW, fH); gl.uniform1f(pr.u.uSharp, P.sharp); gl.uniform1f(pr.u.uScale, scale);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  frames++;
+  if (now - fpsT > 1000) {
+    const fps = frames * 1000 / (now - fpsT);
+    if (fps < 22 && maxL > 600) maxL -= 150; // il telefono fatica: mirino più piccolo, scatto invariato
+    $("m-fps").textContent = Math.round(fps) + " fps · " + fW + " × " + fH; frames = 0; fpsT = now;
+  }
+  $("foot-l").textContent = (g.portrait ? "verticale" : "orizzontale") + " · " + $("size").selectedOptions[0].textContent + " · " + $("quality").selectedOptions[0].textContent.toLowerCase();
+}
+requestAnimationFrame(draw);
+
+/* --- Scatto: posa vera sommando fotogrammi, poi sviluppo completo nel worker --- */
+const worker = new Worker(URL.createObjectURL(new Blob([$("worker-src").textContent], { type: "text/javascript" })));
+const LIN = new Float32Array(256);
+for (let i = 0; i < 256; i++) { const s = i / 255; LIN[i] = s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); }
+const ENC = new Uint8ClampedArray(4097);
+for (let i = 0; i <= 4096; i++) { const l = i / 4096; ENC[i] = 255 * (l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055) + 0.5; }
+const nextFrame = () => new Promise((res) => {
+  if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(() => res());
+  else setTimeout(res, 33);
+});
+let shooting = false;
+async function shoot() {
+  if (!running || shooting) return;
+  shooting = true; $("shutter").disabled = true;
+  const P = params(), n = POSA[+inputs.posa.inp.value];
+  const g = frameGeom(), L = +$("size").value, S = L * 3 / 4;
+  const tw = g.portrait ? S : L, th = g.portrait ? L : S;
+  const cv = document.createElement("canvas"); cv.width = tw; cv.height = th;
+  const cx = cv.getContext("2d", { willReadFrequently: true });
+  const sx = g.crop[0] * g.vw, sy = g.crop[1] * g.vh, sw = g.crop[2] * g.vw, sh = g.crop[3] * g.vh;
+  if (facing === "user") { cx.translate(tw, 0); cx.scale(-1, 1); }
+  $("blink").classList.add("is-on");
+  const acc = n > 1 ? new Float32Array(tw * th * 3) : null;
+  let last = null;
+  for (let f = 0; f < n; f++) {
+    if (f > 0) await nextFrame();
+    cx.drawImage(video, sx, sy, sw, sh, 0, 0, tw, th);
+    last = cx.getImageData(0, 0, tw, th).data;
+    if (acc) for (let i = 0, j = 0; i < last.length; i += 4, j += 3) { acc[j] += LIN[last[i]]; acc[j + 1] += LIN[last[i + 1]]; acc[j + 2] += LIN[last[i + 2]]; }
+  }
+  setTimeout(() => $("blink").classList.remove("is-on"), 60);
+  if (acc) {
+    const k = 4096 / n;
+    for (let i = 0, j = 0; i < last.length; i += 4, j += 3) {
+      last[i] = ENC[Math.min(4096, acc[j] * k | 0)]; last[i + 1] = ENC[Math.min(4096, acc[j + 1] * k | 0)]; last[i + 2] = ENC[Math.min(4096, acc[j + 2] * k | 0)];
+    }
+  }
+  notice("registrazione", true);
+  const seed = (Math.random() * 1e9) | 0;
+  worker.postMessage({ type: "source", w: tw, h: th, data: last }, [last.buffer]);
+  worker.postMessage({ type: "render", p: P, seed });
+  worker._pending = { flash: P.flash > 0, n };
+}
+worker.onmessage = (e) => {
+  const m = e.data, info = worker._pending || {};
+  if (m.type === "error") { notice("errore nello sviluppo"); log("errore: " + m.message); shooting = false; $("shutter").disabled = false; return; }
+  const cv = document.createElement("canvas"); cv.width = m.w; cv.height = m.h;
+  cv.getContext("2d").putImageData(new ImageData(m.data, m.w, m.h), 0, 0);
+  cv.toBlob(async (blob) => {
+    let b = blob;
+    if ($("exif").checked) { try { b = await withExif(blob, m.w, m.h, info.flash); } catch (err) { log("exif non scritto"); } }
+    const name = fname();
+    counter++; try { localStorage.setItem("exm2-counter", String(counter)); } catch (er) {}
+    $("m-file").textContent = fname();
+    await addShot({ id: Date.now(), name, blob: b, w: m.w, h: m.h });
+    $("m-last").textContent = name + " · " + Math.round(b.size / 1024) + " KB";
+    log(name + " · posa 1/" + Math.round(30 / info.n) + " s · " + Math.round(m.ms) + " ms");
+    notice(name + " nel rullino");
+    shooting = false; $("shutter").disabled = !running;
+  }, "image/jpeg", +$("quality").value);
+};
+$("shutter").addEventListener("click", shoot);
+$("vf").addEventListener("click", (e) => { if (e.target.closest("button")) return; shoot(); });
+
+/* --- Rullino, salvato nel browser --- */
+let counter = 1;
+try { counter = +(localStorage.getItem("exm2-counter") || 1); } catch (e) {}
+const fname = () => "CIMG" + String(counter).padStart(4, "0") + ".JPG";
+$("m-file").textContent = fname();
+let db = null, shots = [];
+function idb() {
+  return new Promise((res) => {
+    try {
+      const r = indexedDB.open("exm2", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("shots", { keyPath: "id" });
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+function tx(mode, fn) {
+  return new Promise((res) => {
+    if (!db) return res(null);
+    try { const t = db.transaction("shots", mode), st = t.objectStore("shots"); const r = fn(st); t.oncomplete = () => res(r && r.result); t.onerror = () => res(null); }
+    catch (e) { res(null); }
+  });
+}
+async function addShot(s) { shots.unshift(s); await tx("readwrite", (st) => st.put(s)); renderRoll(); }
+async function delShot(id) { shots = shots.filter((s) => s.id !== id); await tx("readwrite", (st) => st.delete(id)); renderRoll(); }
+const urls = new Map();
+function urlOf(s) { if (!urls.has(s.id)) urls.set(s.id, URL.createObjectURL(s.blob)); return urls.get(s.id); }
+function renderRoll() {
+  const r = $("roll"); r.textContent = "";
+  $("roll-empty").hidden = shots.length > 0;
+  shots.forEach((s) => {
+    const b = document.createElement("button");
+    b.setAttribute("aria-label", "Apri " + s.name);
+    const im = document.createElement("img"); im.src = urlOf(s); im.alt = ""; im.loading = "lazy";
+    b.appendChild(im); b.addEventListener("click", () => openShot(s));
+    r.appendChild(b);
+  });
+}
+let current = null;
+function openShot(s) {
+  current = s; $("detail").hidden = false; $("detail-img").src = urlOf(s);
+  $("detail-meta").textContent = s.name + " · " + s.w + " × " + s.h + " · " + Math.round(s.blob.size / 1024) + " KB";
+  window.scrollTo({ top: 0 });
+}
+$("d-close").addEventListener("click", () => { $("detail").hidden = true; current = null; });
+$("d-del").addEventListener("click", async () => { if (!current) return; const n = current.name; await delShot(current.id); $("detail").hidden = true; current = null; notice(n + " eliminata"); });
+$("d-save").addEventListener("click", async () => {
+  if (!current) return;
+  const file = new File([current.blob], current.name, { type: "image/jpeg" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); notice("condivisa " + current.name); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = urlOf(current); a.download = current.name; document.body.appendChild(a); a.click(); a.remove();
+  notice("scaricata " + current.name);
+});
+function setMode(roll) {
+  $("mode").textContent = roll ? "rullino" : "mirino";
+  $("rollview").hidden = !roll; $("shootview").hidden = roll;
+}
+$("mode").addEventListener("click", () => setMode($("rollview").hidden));
+(async () => {
+  db = await idb();
+  const all = await tx("readonly", (st) => st.getAll());
+  if (all) { shots = all.sort((a, b) => b.id - a.id); renderRoll(); }
+  if (!db) log("rullino solo in memoria: salva gli scatti prima di chiudere");
+})();
+
+/* --- EXIF minimo della EX-M2 --- */
+async function withExif(blob, w, h, flash) {
+  const jpg = new Uint8Array(await blob.arrayBuffer());
+  if (jpg[0] !== 0xFF || jpg[1] !== 0xD8) return blob;
+  const enc = new TextEncoder();
+  const str = (s) => { const b = enc.encode(s), o = new Uint8Array(b.length + 1); o.set(b); return o; };
+  const d = new Date(), p2 = (n) => String(n).padStart(2, "0");
+  const dt = d.getFullYear() + ":" + p2(d.getMonth() + 1) + ":" + p2(d.getDate()) + " " + p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds());
+  function ifd(entries, base) {
+    entries.sort((a, b) => a[0] - b[0]);
+    const n = entries.length, head = new DataView(new ArrayBuffer(2 + n * 12 + 4)), data = [];
+    let off = base + 2 + n * 12 + 4;
+    head.setUint16(0, n, true);
+    entries.forEach(([tag, type, val], i) => {
+      const p = 2 + i * 12; let raw, count;
+      if (type === 2 || type === 7) { raw = val; count = val.length; }
+      else if (type === 3) { count = val.length; raw = new Uint8Array(count * 2); const v = new DataView(raw.buffer); val.forEach((x, j) => v.setUint16(j * 2, x, true)); }
+      else if (type === 4) { count = val.length; raw = new Uint8Array(count * 4); const v = new DataView(raw.buffer); val.forEach((x, j) => v.setUint32(j * 4, x, true)); }
+      else { count = val.length; raw = new Uint8Array(count * 8); const v = new DataView(raw.buffer); val.forEach(([a, b], j) => { v.setUint32(j * 8, a, true); v.setUint32(j * 8 + 4, b, true); }); }
+      head.setUint16(p, tag, true); head.setUint16(p + 2, type, true); head.setUint32(p + 4, count, true);
+      if (raw.length <= 4) raw.forEach((x, j) => head.setUint8(p + 8 + j, x));
+      else { head.setUint32(p + 8, off, true); data.push(raw); off += raw.length; if (off % 2) { data.push(new Uint8Array(1)); off++; } }
+    });
+    head.setUint32(2 + n * 12, 0, true);
+    return { parts: [new Uint8Array(head.buffer), ...data], end: off };
+  }
+  const ifd0 = (ptr) => [[0x010F, 2, str("CASIO COMPUTER CO.,LTD.")], [0x0110, 2, str("EX-M2")], [0x0112, 3, [1]], [0x011A, 5, [[72, 1]]], [0x011B, 5, [[72, 1]]], [0x0128, 3, [2]], [0x0132, 2, str(dt)], [0x8769, 4, [ptr]]];
+  const first = ifd(ifd0(0), 8);
+  const a = ifd(ifd0(first.end), 8);
+  const ex = ifd([[0x829D, 5, [[32, 10]]], [0x9000, 7, enc.encode("0220")], [0x9003, 2, str(dt)], [0x9004, 2, str(dt)], [0x9209, 3, [flash ? 1 : 0]], [0x920A, 5, [[75, 10]]], [0xA002, 4, [w]], [0xA003, 4, [h]], [0xA405, 3, [36]]], first.end);
+  const tiffHead = new Uint8Array([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00]);
+  const tiff = new Blob([tiffHead, ...a.parts, ...ex.parts]);
+  const tbytes = new Uint8Array(await tiff.arrayBuffer());
+  const len = 2 + 6 + tbytes.length;
+  const app1 = new Uint8Array(4 + 6);
+  app1.set([0xFF, 0xE1, len >> 8, len & 255, 0x45, 0x78, 0x69, 0x66, 0, 0]);
+  let rest = 2;
+  if (jpg[2] === 0xFF && jpg[3] === 0xE0) rest = 4 + ((jpg[4] << 8) | jpg[5]);
+  return new Blob([jpg.subarray(0, 2), app1, tbytes, jpg.subarray(rest)], { type: "image/jpeg" });
+}
+
+
+
+/* --- Avvio --- */
+let startPreset = "giorno";
+try { startPreset = localStorage.getItem("exm2-preset") || "giorno"; } catch (e) {}
+if (!PRESETS[startPreset]) startPreset = "giorno";
+$("preset").value = startPreset; applyPreset(startPreset);
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
