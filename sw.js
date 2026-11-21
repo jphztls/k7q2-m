@@ -1,5 +1,5 @@
 // EX-M2 mirino: tutto in cache al primo avvio, poi funziona senza rete.
-const CACHE = "exm2-v5";
+const CACHE = "ccd1-v6";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

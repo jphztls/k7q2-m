@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>EX-M2</title>
+<title>CCD-1</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="EX-M2">
+<meta name="apple-mobile-web-app-title" content="CCD-1">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <style>
@@ -114,22 +114,42 @@ html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: n
 .left { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; }
 .name { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); height: 22px; flex: none; }
 .name small { font: italic 400 10px/14px var(--font-sans); }
-.lcd { position: relative; border: var(--border-hairline) solid var(--line); background: #000; touch-action: none; }
+.lcd { position: relative; box-sizing: border-box; padding: 7px; border: var(--border-hairline) solid var(--line); background: #000; touch-action: none; }
 .lcd canvas { display: block; width: 100%; height: 100%; }
+.title { display: inline-flex; align-items: center; gap: var(--space-2); }
+.led { width: 10px; height: 10px; border-radius: var(--radius-pill); border: var(--border-hairline) solid var(--line); box-sizing: border-box; flex: none; }
+.led.is-rec { background: #ff4f1f; border-color: #ff4f1f; animation: led 0.36s steps(1) infinite; }
+.led.is-ok { background: #2fd158; border-color: #2fd158; }
+@keyframes led { 50% { opacity: 0.15; } }
 
 .keys { display: grid; grid-template-columns: 1fr auto; grid-template-rows: 1fr auto; gap: var(--space-4); min-width: 0; }
-.modes { display: flex; flex-direction: column; gap: var(--space-2); align-self: start; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; }
-.seg .gz-btn + .gz-btn { border-left: 0; }
-.modes .gz-btn { width: 100%; }
+/* Interruttore REC/PLAY da trascinare */
+.slide { position: relative; align-self: start; display: grid; grid-template-columns: 1fr 1fr; width: 148px; height: var(--control-height); border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); box-sizing: border-box; touch-action: none; cursor: grab; font: 400 16px/1 var(--font-sans); }
+.slide > span { display: flex; align-items: center; justify-content: center; opacity: var(--opacity-muted); }
+.slide__thumb { position: absolute; top: -1px; left: -1px; width: calc(50% + 1px); height: calc(100% + 2px); border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; background: var(--surface-inverse); color: var(--ink-inverse); font-style: normal; will-change: transform; }
+.slide.is-drag { cursor: grabbing; }
+.slide:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (prefers-reduced-motion: no-preference) { .slide__thumb.is-snap { transition: transform 80ms ease-out; } }
+.slide::after { content: ""; position: absolute; inset: -8px; }
 .shutter { align-self: start; justify-self: end; width: 64px; height: 64px; padding: 0; border-radius: var(--radius-pill); background: var(--surface-inverse); border: var(--border-hairline) solid var(--line); cursor: pointer; position: relative; }
 .shutter.is-down { background: var(--surface); outline: var(--border-hairline) solid var(--line); outline-offset: -6px; }
 .shutter:focus-visible { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
-.dpad { position: relative; width: 112px; height: 112px; border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); align-self: end; touch-action: none; cursor: pointer; }
+/* MENU sopra il dial */
+.ctrl { display: flex; flex-direction: column; gap: var(--space-3); align-self: end; width: 128px; }
+.round { display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start; padding: 0; background: none; border: 0; color: var(--ink); font: 400 16px/1 var(--font-sans); cursor: pointer; position: relative; }
+.round__dot { width: var(--control-height); height: var(--control-height); border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); box-sizing: border-box; flex: none; }
+.round.is-down .round__dot { background: var(--surface-inverse); }
+.round:focus-visible { outline: none; }
+.round:focus-visible .round__dot { outline: var(--border-hairline) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+.round::after { content: ""; position: absolute; inset: -8px; }
+.dpad { position: relative; width: 128px; height: 128px; border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); touch-action: none; cursor: pointer; box-sizing: border-box; }
 .dpad i { position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: var(--radius-pill); background: var(--ink); pointer-events: none; }
 .dpad i.is-down { width: 8px; height: 8px; margin: -4px 0 0 -4px; }
-.dpad__set { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); pointer-events: none; }
+.dpad__set { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border: var(--border-hairline) solid var(--line); border-radius: var(--radius-pill); pointer-events: none; box-sizing: border-box; }
 .dpad__set.is-down { background: var(--surface-inverse); }
+.dpad__mark { position: absolute; left: 50%; top: 50%; width: 1px; height: 8px; margin: -64px 0 0 0; background: var(--ink); transform-origin: 0 64px; pointer-events: none; opacity: 0; }
+.dpad.is-wheel .dpad__mark { opacity: 1; }
+.dpad.is-wheel i { opacity: var(--opacity-muted); }
 .keys .gz-theme { align-self: end; justify-self: end; }
 .keys .gz-btn { position: relative; }
 .keys .gz-btn::after { content: ""; position: absolute; inset: -6px; }
@@ -140,22 +160,22 @@ html, body { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: n
 <body>
 <div class="body" id="body">
   <div class="left">
-    <p class="name"><span>EX-M2</span><small>2,0 MP · F3.2 7,5 mm</small></p>
+    <p class="name"><span class="title"><i class="led" id="led" aria-hidden="true"></i>CCD-1</span><small>2,0 MP · F3.2 7,5 mm</small></p>
     <div class="lcd" id="lcd"><canvas id="gl" aria-label="Display della fotocamera"></canvas></div>
   </div>
   <div class="keys" id="keys">
-    <div class="modes">
-      <div class="seg" role="group" aria-label="Modalità">
-        <button class="gz-btn" data-k="rec" id="k-rec" aria-pressed="true">REC</button>
-        <button class="gz-btn gz-btn--secondary" data-k="play" id="k-play" aria-pressed="false">PLAY</button>
-      </div>
-      <button class="gz-btn gz-btn--secondary" data-k="menu">MENU</button>
+    <div class="slide" id="slide" role="switch" aria-checked="false" aria-label="Modalità: CAM per scattare o DISP per rivedere" tabindex="0">
+      <span>CAM</span><span>DISP</span><i class="slide__thumb" id="thumb">CAM</i>
     </div>
     <button class="shutter" id="shutter" aria-label="Scatta"></button>
-    <div class="dpad" id="dpad" role="group" aria-label="Tasti direzionali e SET">
-      <i style="left:50%;top:12px" data-d="up"></i><i style="left:calc(100% - 12px);top:50%" data-d="right"></i>
-      <i style="left:50%;top:calc(100% - 12px)" data-d="down"></i><i style="left:12px;top:50%" data-d="left"></i>
-      <span class="dpad__set" data-d="set"></span>
+    <div class="ctrl">
+      <button class="round" data-k="menu" id="k-menu"><span class="round__dot"></span><span>MENU</span></button>
+      <div class="dpad" id="dpad" role="group" aria-label="Dial: frecce, SET al centro, ruota per lo zoom">
+        <i style="left:50%;top:13px" data-d="up"></i><i style="left:calc(100% - 13px);top:50%" data-d="right"></i>
+        <i style="left:50%;top:calc(100% - 13px)" data-d="down"></i><i style="left:13px;top:50%" data-d="left"></i>
+        <span class="dpad__set" data-d="set"></span>
+        <b class="dpad__mark" id="mark"></b>
+      </div>
     </div>
     <button class="gz-theme" id="theme" aria-label="Cambia tema">●</button>
   </div>
@@ -723,6 +743,8 @@ void main() {
   float my = smoothstep(0.10 - d.y, 0.10 + d.y, l.y) * (1.0 - smoothstep(0.90 - d.y, 0.90 + d.y, l.y));
   vec3 col3 = prim * v * mx * my * 4.3 + vec3(0.006, 0.008, 0.014);
   vec2 q = u - 0.5; col3 *= 1.0 - dot(q, q) * 0.25;  // retroilluminazione non uniforme
+  vec2 eg = min(u, 1.0 - u);                          // il bordo nero sfuma i punti vicini: profondità del pannello
+  col3 *= smoothstep(0.0, 0.035, eg.x) * smoothstep(0.0, 0.045, eg.y) * 0.85 + 0.15 * step(0.004, min(eg.x, eg.y));
   if (uOn < 0.5) col3 = vec3(0.01) + vec3(0.02) * (1.0 - u.y) * (1.0 - u.x);
   o = vec4(col3, 1.0);
 }
@@ -740,7 +762,8 @@ document.addEventListener("dblclick", (e) => e.preventDefault());
 const BASE = {"ev": -6, "hl": 0, "sh": 75, "ct": 69, "sat": 98, "temp": -49, "tint": -87, "soft": 8, "focus": 0, "vig": 4, "dist": 26, "ca": 98, "bloom": 8, "haze": 32, "smear": 10, "noise": 15, "chroma": 37, "sharp": 84, "jpeg": 27, "mano": 61, "posa": 0, "gsh": 104, "gss": 42, "gsv": -2, "gmh": 19, "gms": 92, "gmv": 44, "ghh": 154, "ghs": 44, "ghv": 21, "dir": -1};
 
 /* --- Impostazioni della fotocamera (non dell'effetto) --- */
-const SET_DEF = { flash: "0", cam: "environment", exif: "0", size: "1600", theme: "dark", evAdj: 0, sound: "1" };
+const SET_DEF = { flash: "0", cam: "environment", exif: "0", size: "1600", quality: "low", theme: "dark", evAdj: 0, sound: "1" };
+const QUALITY = { low: BASE.jpeg, mid: 50, fine: 80 };   // LOW è la compressione della taratura
 let vals = Object.assign({}, SET_DEF);
 try { const s = JSON.parse(store.get("exm2-set", "{}")); for (const k in SET_DEF) if (k in s) vals[k] = s[k]; } catch (e) {}
 const save = () => store.set("exm2-set", JSON.stringify(vals));
@@ -748,6 +771,7 @@ const MENU = [
   { k: "flash", l: "FLASH", opts: [["0", "OFF"], ["1", "ON"]] },
   { k: "cam", l: "CAMERA", opts: [["environment", "POST"], ["user", "ANT"]] },
   { k: "exif", l: "EXIF", opts: [["0", "OFF"], ["1", "ON"]] },
+  { k: "quality", l: "QUALITA", opts: [["low", "LOW"], ["mid", "MEDIA"], ["fine", "FINE"]] },
   { k: "size", l: "FORMATO", opts: [["1600", "1600"], ["1280", "1280"], ["640", "640"]] },
   { k: "sound", l: "SUONI", opts: [["1", "ON"], ["0", "OFF"]] },
 ];
@@ -813,7 +837,7 @@ const G = {
   "/": "00000000010001000100010001000000000", "-": "00000000000000011111000000000000000", "+": "00000001000010011111001000010000000",
   "[": "01110010000100001000010000100001110", "]": "01110000100001000010000100001001110", "?": "01110100010000100010001000000000100",
   "<": "00010001000100010000010000010000010", ">": "01000001000001000001000100010001000", "x": "00000100010101000100010101000100000",
-  "!": "00100001000010000100001000000000100", "*": "00010001000100011111000100010001000",
+  "!": "00100001000010000100001000000000100", "_": "00000000000000000000000000000011111", "*": "00010001000100011111000100010001000",
 };
 function glyphPx(ch, x, y, fn) { const g = G[ch] || G["?"]; for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) if (g[r * 5 + c] === "1") fn(x + c, y + r); }
 const textW = (s) => s.length * 6 - 1;
@@ -835,7 +859,7 @@ let remaining = "----";
 function updateRemaining() {
   if (!navigator.storage || !navigator.storage.estimate) return;
   navigator.storage.estimate().then((e) => {
-    const sz = +vals.size, kb = (60 + 4.5 * BASE.jpeg) * (sz * sz) / (1600 * 1600) + 8;
+    const sz = +vals.size, kb = (60 + 4.5 * QUALITY[vals.quality]) * (sz * sz) / (1600 * 1600) + 8;
     const n = Math.floor(((e.quota || 0) - (e.usage || 0)) / 1024 / kb);
     remaining = String(Math.max(0, Math.min(9999, n))).padStart(4, "0"); drawOsd();
   }).catch(() => {});
@@ -849,19 +873,26 @@ function drawOsd() {
   if (rec && S.disp === 0 && !S.menu) {
     let x = 4;
     if (vals.flash === "1") { text("*", x, 4); x += 9; }
-    if (vals.cam === "user") text("ANT", x, 4);
-    text(vals.size, OW - 4, 4, { align: "right" });
+    if (vals.cam === "user") { text("ANT", x, 4); x += 22; }
+    if (zoom > 1.001) text(zoom.toFixed(1) + "X", x, 4);
+    text(vals.size + " " + { low: "L", mid: "M", fine: "F" }[vals.quality], OW - 4, 4, { align: "right" });
     text("[" + remaining + "]", OW - 4, 14, { align: "right" });
     if (vals.evAdj) text(evText(vals.evAdj), 4, OH - 11);
     const d = new Date(); text(String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"), OW / 2, OH - 11, { align: "center" });
     battery(OW - 15, OH - 11);
+  }
+  if (rec && !S.menu && zoomShowUntil > performance.now()) {   // barra dello zoom mentre giri il dial
+    const bw = 90, bx = Math.round((OW - bw) / 2), by = OH - 26;
+    text("ZOOM " + zoom.toFixed(1) + "X", OW / 2, by - 11, { align: "center" });
+    rule(bx, by, bw); const mx = bx + Math.round((zoom - 1) / 3 * (bw - 3));
+    ox.fillStyle = "#000"; ox.fillRect(mx - 1, by - 4, 5, 9); ox.fillStyle = "#fff"; ox.fillRect(mx, by - 3, 3, 7);
   }
   if (rec && S.menu) drawMenu();
   if (S.mode === "play" || S.review) {
     const s = S.review || shots[S.playIdx];
     if (!s) text("NESSUNA FOTO", OW / 2, 56, { align: "center" });
     else if (S.disp === 0 && !S.review && !S.menu) {
-      text("PLAY", 4, 4); text(s.name.slice(4, 8), OW - 4, 4, { align: "right" });
+      text("DISP", 4, 4); text(s.name.replace(/\.JPG$/i, ""), OW - 4, 4, { align: "right" });
       text((S.playIdx + 1) + "/" + shots.length, 4, OH - 11); text(s.w + "x" + s.h, OW - 4, OH - 11, { align: "right" });
     }
     if (S.mode === "play" && S.menu) drawPlayMenu();
@@ -873,7 +904,7 @@ function drawMenu() {
   box(0, 0, OW, OH, "rgba(0,0,0,.88)");
   text("MENU", 6, 6); rule(5, 16, OW - 10);
   MENU.forEach((d, i) => {
-    const y = 23 + i * 13, sel = i === S.menuIdx;
+    const y = 22 + i * 13, sel = i === S.menuIdx;
     if (sel) selBox(4, y - 2, OW - 8, 11);
     text(d.l, 7, y, { inv: sel }); text((sel ? "<" : "") + optLabel(d) + (sel ? ">" : ""), OW - 7, y, { align: "right", inv: sel });
   });
@@ -885,7 +916,7 @@ function drawPlayMenu() {
     ["NO", "SI"].forEach((t, i) => { const x = OW / 2 + (i ? 22 : -22), sel = S.confirmSel === i; if (sel) selBox(x - 12, 60, 24, 11); text(t, x, 62, { align: "center", inv: sel }); });
     return;
   }
-  text("MENU PLAY", 6, 6); rule(5, 16, OW - 10);
+  text("MENU DISP", 6, 6); rule(5, 16, OW - 10);
   PLAY_MENU.forEach((t, i) => { const y = 23 + i * 13, sel = i === S.playMenuIdx; if (sel) selBox(4, y - 2, OW - 8, 11); text(t, 7, y, { inv: sel }); });
 }
 
@@ -910,26 +941,35 @@ function tick(t0, freq, dur, gain, hp) { // un clic: rumore filtrato con un picc
   og.gain.setValueAtTime(gain * 0.25, t0); og.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * 0.6);
   o.connect(og).connect(a.destination); o.start(t0); o.stop(t0 + dur);
 }
-function clickSound(kind) {
+/* Ogni comando ha un suo clic, alla pressione e al rilascio */
+const SND = {
+  dial:    { down: [[2600, 0.012, 0.22, 5200]], up: [[2100, 0.010, 0.10, 4600]] },
+  set:     { down: [[1500, 0.020, 0.30, 2600]], up: [[1200, 0.014, 0.12, 2200]] },
+  menu:    { down: [[1100, 0.022, 0.30, 2000]], up: [[ 900, 0.016, 0.12, 1700]] },
+  switch:  { down: [[1800, 0.010, 0.12, 3600]], up: [[ 650, 0.030, 0.40, 1400], [1600, 0.018, 0.22, 3000, 0.018]] },
+  trigger: { down: [[ 900, 0.035, 0.50, 2600], [700, 0.05, 0.40, 1800, 0.075]], up: [[1400, 0.012, 0.12, 2800]] },
+  detent:  { down: [[3200, 0.006, 0.12, 6000]] },
+  repeat:  { down: [[2400, 0.008, 0.12, 4800]] },
+  theme:   { down: [[2200, 0.010, 0.14, 4200]], up: [[1800, 0.008, 0.08, 3800]] },
+};
+function sound(ctrl, phase) {
   if (vals.sound !== "1" || !audio()) return;
+  const set = SND[ctrl] && SND[ctrl][phase || "down"]; if (!set) return;
   const t0 = actx.currentTime + 0.002;
-  if (kind === "shutter") { tick(t0, 900, 0.035, 0.5, 2600); tick(t0 + 0.075, 700, 0.05, 0.4, 1800); }
-  else if (kind === "soft") tick(t0, 2400, 0.012, 0.18, 4200);
-  else tick(t0, 1800, 0.018, 0.28, 3200);
+  for (const [f, d, g, bp, dt] of set) tick(t0 + (dt || 0), f, d, g, bp);
 }
-document.addEventListener("click", (e) => { if (vals.sound === "1" && e.target.closest(".keys button, .keys .dpad, #lcd")) audio(); }, true); // iOS sblocca l'audio solo dopo un tocco completo
+document.addEventListener("click", (e) => { if (vals.sound === "1" && e.target.closest(".keys button, .keys .dpad, .keys .slide, #lcd")) audio(); }, true); // iOS sblocca l'audio solo dopo un tocco completo
 
 /* --- Tasti --- */
 function syncKeys() {
-  $("k-rec").className = "gz-btn " + (S.mode === "rec" ? "" : "gz-btn--secondary"); $("k-rec").setAttribute("aria-pressed", S.mode === "rec");
-  $("k-play").className = "gz-btn " + (S.mode === "play" ? "" : "gz-btn--secondary"); $("k-play").setAttribute("aria-pressed", S.mode === "play");
+  setSlide(S.mode === "play" ? 1 : 0, true);
   drawOsd();
 }
 function stepMenu(dir) {
   const d = MENU[S.menuIdx], i = d.opts.findIndex((o) => o[0] === vals[d.k]);
   vals[d.k] = d.opts[(i + dir + d.opts.length) % d.opts.length][0]; save();
   if (d.k === "cam" && S.on) startCamera();
-  if (d.k === "size") updateRemaining();
+  if (d.k === "size" || d.k === "quality") updateRemaining();
 }
 function key(k) {
   if (!S.on) { powerOn(); return; }
@@ -971,27 +1011,93 @@ function key(k) {
   if (k === "left") showPlay(S.playIdx - 1);
   if (k === "right") showPlay(S.playIdx + 1);
 }
-$("theme").addEventListener("pointerdown", () => clickSound("soft"));
+$("theme").addEventListener("pointerdown", () => sound("theme"));
+$("theme").addEventListener("pointerup", () => sound("theme", "up"));
 $("theme").addEventListener("click", () => { vals.theme = vals.theme === "dark" ? "light" : "dark"; applyTheme(vals.theme); save(); });
-(function () { const b = $("shutter"); b.addEventListener("pointerdown", () => { b.classList.add("is-down"); clickSound("shutter"); key("shutter"); }); const up = () => b.classList.remove("is-down"); b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up); })();
+(function () { const b = $("shutter"); b.addEventListener("pointerdown", () => { b.classList.add("is-down"); sound("trigger"); key("shutter"); }); const up = (e) => { if (b.classList.contains("is-down") && e.type === "pointerup") sound("trigger", "up"); b.classList.remove("is-down"); }; b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up); })();
+/* Dial: tocco sui puntini = frecce, centro = SET, rotazione = rotella (zoom digitale) */
+let zoom = 1, zoomShowUntil = 0, zoomT = 0;
+function wheel(sign) {
+  if (!S.on) return;
+  if (S.mode === "rec" && S.menu) { key(sign > 0 ? "down" : "up"); return; }
+  if (S.mode !== "rec" || S.review) return;
+  const z = Math.max(1, Math.min(4, Math.round((zoom + 0.2 * sign) * 10) / 10));
+  if (z === zoom) return;
+  zoom = z; zoomShowUntil = performance.now() + 1400; drawOsd();
+  clearTimeout(zoomT); zoomT = setTimeout(drawOsd, 1450);
+}
 (function () {
-  const pad = $("dpad"); let rep = 0, repT = 0, cur = null;
-  const which = (e) => {
+  const pad = $("dpad"), mark = $("mark"); let rep = 0, repT = 0, cur = null, state = null, lastA = 0, acc = 0, markA = 0;
+  const ui = (e) => {
     const r = pad.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     let dx = e.clientX - cx, dy = e.clientY - cy;
     if (rotK === 1) { const t = dx; dx = dy; dy = -t; } else if (rotK === 2) { dx = -dx; dy = -dy; }
-    if (Math.hypot(dx, dy) < r.width * 0.22) return "set";
-    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+    return { dx, dy, r: Math.hypot(dx, dy), R: r.width / 2 };
   };
-  const mark = (d) => pad.querySelectorAll("[data-d]").forEach((el) => el.classList.toggle("is-down", el.dataset.d === d));
-  pad.addEventListener("pointerdown", (e) => { pad.setPointerCapture(e.pointerId); cur = which(e); mark(cur); clickSound(); key(cur); if (cur !== "set") repT = setTimeout(() => { rep = setInterval(() => { clickSound("soft"); key(cur); }, 110); }, 400); });
-  const up = () => { clearTimeout(repT); clearInterval(rep); mark(null); cur = null; };
-  pad.addEventListener("pointerup", up); pad.addEventListener("pointercancel", up);
+  const which = (p) => p.r < p.R * 0.36 ? "set" : Math.abs(p.dx) > Math.abs(p.dy) ? (p.dx > 0 ? "right" : "left") : (p.dy > 0 ? "down" : "up");
+  const mk = (d) => pad.querySelectorAll("[data-d]").forEach((el) => el.classList.toggle("is-down", el.dataset.d === d));
+  pad.addEventListener("pointerdown", (e) => {
+    pad.setPointerCapture(e.pointerId);
+    const p = ui(e); cur = which(p); mk(cur); state = "pending"; acc = 0; lastA = Math.atan2(p.dy, p.dx);
+    sound(cur === "set" ? "set" : "dial");
+    if (cur !== "set") repT = setTimeout(() => { if (state === "pending") { state = "hold"; key(cur); rep = setInterval(() => { sound("repeat"); key(cur); }, 110); } }, 420);
+    else repT = 0;
+  });
+  pad.addEventListener("pointermove", (e) => {
+    if (!state || cur === "set") return;
+    const p = ui(e); if (p.r < p.R * 0.36) return;
+    const a = Math.atan2(p.dy, p.dx); let d = a - lastA; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI; lastA = a;
+    acc += d;
+    if ((state === "pending" && Math.abs(acc) > 0.22) || (state === "hold" && Math.abs(acc) > 0.4)) { state = "wheel"; clearTimeout(repT); clearInterval(rep); mk(null); pad.classList.add("is-wheel"); markA = a; acc = 0; }
+    if (state === "wheel") {
+      mark.style.transform = "rotate(" + (a + Math.PI / 2) + "rad)";
+      const step = 0.26; // un clic della rotella ogni 15°
+      while (acc > step) { acc -= step; sound("detent"); wheel(1); }
+      while (acc < -step) { acc += step; sound("detent"); wheel(-1); }
+    }
+  });
+  const end = (e) => {
+    if (!state) return;
+    if (state === "pending" && e.type === "pointerup") key(cur);
+    if (e.type === "pointerup" && state !== "wheel") sound(cur === "set" ? "set" : "dial", "up");
+    clearTimeout(repT); clearInterval(rep); mk(null); pad.classList.remove("is-wheel"); state = null; cur = null;
+  };
+  pad.addEventListener("pointerup", end); pad.addEventListener("pointercancel", end);
+  pad.addEventListener("wheel", (e) => { e.preventDefault(); sound("detent"); wheel(e.deltaY > 0 ? -1 : 1); }, { passive: false });
+})();
+/* Interruttore REC/PLAY: si trascina, scatta a metà corsa */
+let slidePos = 0;
+function setSlide(v, snap) {
+  const th = $("thumb"), w = $("slide").clientWidth / 2;
+  th.classList.toggle("is-snap", !!snap);
+  th.style.transform = "translateX(" + (v * w) + "px)";
+  th.textContent = v > 0.5 ? "DISP" : "CAM";
+  $("slide").setAttribute("aria-checked", v > 0.5 ? "true" : "false");
+  slidePos = v;
+}
+(function () {
+  const sl = $("slide"); let x0 = 0, p0 = 0, drag = false, moved = false;
+  const ux = (e) => rotK === 1 ? e.clientY : rotK === 2 ? -e.clientX : e.clientX;
+  sl.addEventListener("pointerdown", (e) => { sl.setPointerCapture(e.pointerId); drag = true; moved = false; x0 = ux(e); p0 = slidePos; sl.classList.add("is-drag"); sound("switch"); });
+  sl.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const d = (ux(e) - x0) / (sl.clientWidth / 2); if (Math.abs(d) > 0.08) moved = true;
+    setSlide(Math.max(0, Math.min(1, p0 + d)), false);
+  });
+  const end = (e) => {
+    if (!drag) return; drag = false; sl.classList.remove("is-drag");
+    let target = moved ? (slidePos > 0.5 ? 1 : 0) : (p0 > 0.5 ? 0 : 1);   // tocco senza trascinare: cambia lato
+    if (e.type === "pointercancel") target = p0;
+    setSlide(target, true);
+    if (target !== p0) { sound("switch", "up"); key(target ? "play" : "rec"); }
+  };
+  sl.addEventListener("pointerup", end); sl.addEventListener("pointercancel", end);
+  sl.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); e.stopPropagation(); sound("switch", "up"); key(S.mode === "rec" ? "play" : "rec"); } });
 })();
 document.querySelectorAll("[data-k]").forEach((b) => {
   const k = b.dataset.k;
-  b.addEventListener("pointerdown", () => { b.classList.add("is-down"); clickSound(); key(k); });
-  const up = () => b.classList.remove("is-down");
+  b.addEventListener("pointerdown", () => { b.classList.add("is-down"); sound(k === "menu" ? "menu" : "set"); key(k); });
+  const up = (e) => { if (b.classList.contains("is-down") && e.type === "pointerup") sound(k === "menu" ? "menu" : "set", "up"); b.classList.remove("is-down"); };
   b.addEventListener("pointerup", up); b.addEventListener("pointerleave", up); b.addEventListener("pointercancel", up);
 });
 document.addEventListener("keydown", (e) => {
@@ -1083,6 +1189,7 @@ function geom() {
   const ew = odd ? vh : vw, eh = odd ? vw : vh, ar = 4 / 3;
   let cw = 1, ch = 1;
   if (ew / eh > ar) cw = (eh * ar) / ew; else ch = (ew / ar) / eh;
+  cw /= zoom; ch /= zoom;   // zoom digitale: si ritaglia il centro, la foto resta a piena dimensione
   const cx = (1 - cw) / 2, cy = (1 - ch) / 2;
   const R = (x, y) => rotK === 1 ? [1 - y, x] : rotK === 2 ? [1 - x, 1 - y] : rotK === 3 ? [y, 1 - x] : [x, y];
   const p1 = R(cx, cy), p2 = R(cx + cw, cy + ch);
@@ -1163,7 +1270,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let pending = {}, reviewT = 0;
 async function shoot() {
   if (!S.on || S.busy || !video.videoWidth) return;
-  S.busy = true; drawOsd();
+  S.busy = true; drawOsd(); led("rec");
   let lit = false;
   if (vals.flash === "1") {
     if (vals.cam !== "environment") flashMsg("FLASH SOLO POST", 1200);
@@ -1184,13 +1291,13 @@ async function shoot() {
   }
   if (lit) torch(false);
   if (acc) { const k = 4096 / n; for (let i = 0, j = 0; i < last.length; i += 4, j += 3) { last[i] = ENC[Math.min(4096, acc[j] * k | 0)]; last[i + 1] = ENC[Math.min(4096, acc[j + 1] * k | 0)]; last[i + 2] = ENC[Math.min(4096, acc[j + 2] * k | 0)]; } }
-  pending = { flash: lit, quality: BASE.jpeg / 100, exif: vals.exif === "1" };
+  pending = { flash: lit, quality: QUALITY[vals.quality] / 100, exif: vals.exif === "1" };
   worker.postMessage({ type: "source", w: tw, h: th, data: last }, [last.buffer]);
   worker.postMessage({ type: "render", p: P, seed });
 }
 worker.onmessage = (e) => {
   const m = e.data, info = pending;
-  if (m.type === "error") { S.busy = false; flashMsg("ERRORE", 2000); return; }
+  if (m.type === "error") { S.busy = false; led(null); flashMsg("ERRORE", 2000); return; }
   const cv = document.createElement("canvas"); cv.width = m.w; cv.height = m.h;
   cv.getContext("2d").putImageData(new ImageData(m.data, m.w, m.h), 0, 0);
   cv.toBlob(async (blob) => {
@@ -1199,16 +1306,19 @@ worker.onmessage = (e) => {
     const name = fname(); counter++; store.set("exm2-counter", String(counter));
     const s = { id: Date.now(), name, blob: b, w: m.w, h: m.h };
     shots.unshift(s); await tx("readwrite", (st) => st.put(s));
-    S.busy = false; updateRemaining();
+    S.busy = false; updateRemaining(); led("ok");
     await loadPhoto(s); S.review = s; drawOsd();
     clearTimeout(reviewT); reviewT = setTimeout(endReview, 1600);
   }, "image/jpeg", info.quality);
 };
 function endReview() { if (!S.review) return; S.review = null; clearTimeout(reviewT); drawOsd(); }
 
+let ledT = 0;
+function led(s) { const el = $("led"); clearTimeout(ledT); el.className = "led" + (s ? " is-" + s : ""); if (s === "ok") ledT = setTimeout(() => { el.className = "led"; }, 1500); }
+
 /* --- Rullino --- */
 let counter = +store.get("exm2-counter", 1);
-const fname = () => "CIMG" + String(counter).padStart(4, "0") + ".JPG";
+const fname = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return String(d.getFullYear()).slice(2) + p(d.getMonth() + 1) + p(d.getDate()) + "_" + String(counter).padStart(3, "0") + ".JPG"; };
 let db = null, shots = [];
 function idb() { return new Promise((res) => { try { const r = indexedDB.open("exm2", 1); r.onupgradeneeded = () => r.result.createObjectStore("shots", { keyPath: "id" }); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }); }
 function tx(mode, fn) { return new Promise((res) => { if (!db) return res(null); try { const t = db.transaction("shots", mode), st = t.objectStore("shots"); const r = fn(st); t.oncomplete = () => res(r && r.result); t.onerror = () => res(null); } catch (e) { res(null); } }); }
@@ -1224,7 +1334,7 @@ async function share(list) {
   for (const s of list) { const u = URL.createObjectURL(s.blob), a = document.createElement("a"); a.href = u; a.download = s.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
 }
 
-/* --- EXIF minimo della EX-M2 --- */
+/* --- EXIF minimo della CCD-1 --- */
 async function withExif(blob, w, h, flash) {
   const jpg = new Uint8Array(await blob.arrayBuffer());
   if (jpg[0] !== 0xFF || jpg[1] !== 0xD8) return blob;
@@ -1250,7 +1360,7 @@ async function withExif(blob, w, h, flash) {
     head.setUint32(2 + n * 12, 0, true);
     return { parts: [new Uint8Array(head.buffer), ...data], end: off };
   }
-  const ifd0 = (ptr) => [[0x010F, 2, str("CASIO COMPUTER CO.,LTD.")], [0x0110, 2, str("EX-M2")], [0x0112, 3, [1]], [0x011A, 5, [[72, 1]]], [0x011B, 5, [[72, 1]]], [0x0128, 3, [2]], [0x0132, 2, str(dt)], [0x8769, 4, [ptr]]];
+  const ifd0 = (ptr) => [[0x010F, 2, str("CCD")], [0x0110, 2, str("CCD-1")], [0x0112, 3, [1]], [0x011A, 5, [[72, 1]]], [0x011B, 5, [[72, 1]]], [0x0128, 3, [2]], [0x0132, 2, str(dt)], [0x8769, 4, [ptr]]];
   const first = ifd(ifd0(0), 8);
   const a = ifd(ifd0(first.end), 8);
   const ex = ifd([[0x829D, 5, [[32, 10]]], [0x9000, 7, enc.encode("0220")], [0x9003, 2, str(dt)], [0x9004, 2, str(dt)], [0x9209, 3, [flash ? 1 : 0]], [0x920A, 5, [[75, 10]]], [0xA002, 4, [w]], [0xA003, 4, [h]], [0xA405, 3, [36]]], first.end);
